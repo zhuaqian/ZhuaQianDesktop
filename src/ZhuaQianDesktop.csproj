@@ -96,6 +96,7 @@
     <Compile Include="providers\StreamingBridge.cs" />
     <Compile Include="providers\TencentWorkBuddyClient.cs" />
     <Compile Include="providers\ZhipuAIGLMClient.cs" />
+    <Compile Include="ui\MainForm.Export.cs" />
     <Compile Include="ui\MainForm.LiveSession.cs" />
     <Compile Include="ui\MainForm.Monitoring.cs" />
     <Compile Include="ui\MainForm.PlanExecution.cs" />

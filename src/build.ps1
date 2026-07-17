@@ -5,6 +5,7 @@ param(
 $csc = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe"
 $src = @(
     "ZhuaQianDesktop.cs"
+    "ui\MainForm.Export.cs"
     "ui\MainForm.Share.cs"
     "ui\MainForm.LiveSession.cs"
     "ui\MainForm.Monitoring.cs"
