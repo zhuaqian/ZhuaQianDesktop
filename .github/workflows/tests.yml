@@ -1,8 +1,9 @@
-name: Tests
+name: Build and Test
 
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   pull_request:
   workflow_dispatch:
 
@@ -11,10 +12,39 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run unit tests
+      - name: Build and run unit tests
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $p = Join-Path $env:GITHUB_WORKSPACE 'src\scripts\run-tests.ps1'
           & pwsh -ExecutionPolicy Bypass -File $p
           if ($LASTEXITCODE -ne 0) { throw "Tests failed" }
+
+  # Official release artifacts are produced by CI only. Local builds must stay
+  # named *-local-dev* and are never published as releases.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build executable (dist/ZhuaQianDesktop.exe)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & pwsh -ExecutionPolicy Bypass -File (Join-Path $env:GITHUB_WORKSPACE 'build.ps1')
+          if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+      - name: Package release artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tag = $env:GITHUB_REF_NAME
+          $dist = Join-Path $env:GITHUB_WORKSPACE 'dist'
+          $zip = Join-Path $env:GITHUB_WORKSPACE "ZhuaQianDesktop-$tag.zip"
+          Compress-Archive -Path (Join-Path $dist '*') -DestinationPath $zip -Force
+          Write-Host "Created $zip"
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZhuaQianDesktop-${{ github.ref_name }}
+          path: ZhuaQianDesktop-${{ github.ref_name }}.zip
