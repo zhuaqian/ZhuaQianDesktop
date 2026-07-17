@@ -1,0 +1,25 @@
+# Normalize line endings. This is a Windows/.NET Framework project whose
+# build (csc via build.ps1) and tests run on Windows, so keep CRLF in the
+# working tree for Windows-native files while storing LF in the repository.
+* text=auto
+
+# Windows-native tooling: keep CRLF on checkout.
+*.ps1   text eol=crlf
+*.cs    text eol=crlf
+*.csproj text eol=crlf
+*.sln   text eol=crlf
+*.sed   text eol=crlf
+
+# Cross-platform text: LF.
+*.md    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# Binary assets: never touch.
+*.png   binary
+*.exe   binary
+*.dll   binary
+*.pdb   binary
+*.zip   binary
+*.pdf   binary
