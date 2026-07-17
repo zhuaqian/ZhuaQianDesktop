@@ -97,6 +97,8 @@
     <Compile Include="providers\TencentWorkBuddyClient.cs" />
     <Compile Include="providers\ZhipuAIGLMClient.cs" />
     <Compile Include="ui\MainForm.Export.cs" />
+    <Compile Include="ui\MainForm.Settings.cs" />
+    <Compile Include="ui\MainForm.LocalActionRouting.cs" />
     <Compile Include="ui\MainForm.LiveSession.cs" />
     <Compile Include="ui\MainForm.Monitoring.cs" />
     <Compile Include="ui\MainForm.PlanExecution.cs" />
