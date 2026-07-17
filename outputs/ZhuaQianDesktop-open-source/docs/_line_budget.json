@@ -1,0 +1,25 @@
+﻿{
+    "mainFile":  "ZhuaQianDesktop.cs",
+    "maxMainLines":  4845,
+    "maxOtherCsLines":  900,
+    "maxAllowedToolNewExceptions":  4,
+    "allowedToolNews":  [
+                            {
+                                "pattern":  "new Tools.WebSearchClient(",
+                                "backlog":  "B1-WebSearchClientExecutor"
+                            },
+                            {
+                                "pattern":  "new Tools.SystemDiagnostics(",
+                                "backlog":  "B1-SystemDiagnosticsExecutor"
+                            },
+                            {
+                                "pattern":  "new Tools.UndoRedoManager(",
+                                "backlog":  "B1-UndoRedoPipeline"
+                            },
+                            {
+                                "pattern":  "new Tools.CommandParser(",
+                                "backlog":  "B1-CommandParserExtraction"
+                            }
+                        ],
+    "lastUpdated":  "2026-07-17T00:11:55.8462191+08:00"
+}

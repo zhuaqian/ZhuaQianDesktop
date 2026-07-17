@@ -1,0 +1,118 @@
+# Project Handoff
+
+Updated: 2026-07-17
+
+This is the short current-state document for a developer or AI agent taking over the project. If older notes disagree with this file, trust this file together with `README.md`, `docs/DOCUMENTATION_MAP_2026-07-11.md`, `docs/CURRENT_REALITY_2026-07-11.md`, and `docs/CODE_COMPLETION_ALIGNMENT.md`.
+
+## Project Identity
+
+ZhuaQian Desktop is a local-first Windows AI workbench prototype. It combines chat, task history, document parsing, office file export, local knowledge indexing, multi-provider model routing, permission-gated local actions, audit records, and output records.
+
+It is not just a chat UI. The product direction is a permission-aware desktop agent where real side effects are visible, approved when risky, auditable, and tied back to tasks and generated outputs.
+
+## Current Status
+
+- Version stage: v0.1 prototype.
+- Public source target: `src/`.
+- Transitional mirror: `work/zq-desktop/`.
+- Generated package output: `outputs/ZhuaQianDesktop-open-source/`.
+- Latest verified result in this workspace: root build passed; both `src` and `work/zq-desktop` test suites passed with `168` passed / `0` failed; runtime smoke test passed.
+- Git metadata in this local workspace is not usable; public release should be done from a repaired clone or clean Git initialization.
+
+## Directory Guide
+
+| Path | Meaning | Edit? |
+|---|---|---|
+| `src/` | Main contributor source tree. Build and tests currently pass here. | Yes |
+| `work/zq-desktop/` | Transitional runtime mirror kept for compatibility verification. | Only when syncing or fixing mirror-specific runtime behavior |
+| `outputs/` | Generated release package and binaries. | No, regenerate instead |
+| `dist/` | Build output from root build. | No |
+| `docs/` | Current docs plus archived historical notes. | Yes, but update core docs rather than adding loose reports |
+| `assets/` | Screenshots used by docs/release material. | Yes, when updating visual evidence |
+| `.agents/`, `.codex/` | Empty placeholders in this workspace. | Not active config |
+
+## Main Code Shape
+
+The app is a .NET Framework 4.8 WinForms application.
+
+Current important modules under `src/`:
+
+- `ZhuaQianDesktop.cs`: current main WinForms implementation; still oversized and should be reduced.
+- `Program.cs`: application entry point.
+- `Agent/`: command contracts, pipeline, centralized executor factory, and executors for export, folder organization, plugin run, process management, rollback, web search, and basic computer control.
+- `Core/`: configuration, DPAPI-backed storage, permission gate, audit log, outputs hub, sharing, and package building.
+- `Documents/`: Office export and redaction helpers.
+- `Knowledge/`: chunking and vector/index primitives.
+- `providers/`: provider clients and `ProviderManager` for Gemini, OpenRouter, local/Ollama-compatible, OpenAI-compatible, Tencent WorkBuddy, Alibaba Qianwen, and Zhipu AI.
+- `Tools/`: folder organization, plugin runner, command parsing, timeline, approval UI, system diagnostics, process snapshot monitoring scaffold, and related local tools.
+- `ui/`: settings dialog, right panel, monitoring panel, share/live-session partials.
+- `tests/`: custom C# test runner and module tests.
+
+## Architecture Rule To Preserve
+
+All real side-effect actions should move toward this pipeline:
+
+```text
+IAgentCommand
+  -> PermissionGate
+  -> Approval surface when needed
+  -> ICommandExecutor
+  -> AuditLog + OutputsHub
+```
+
+Do not add new local actions by directly wiring business logic into `MainForm` or by writing a separate permission/logging path.
+
+## Build And Test
+
+Run from repository root:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\src\scripts\run-tests.ps1
+```
+
+When behavior also exists in the transitional mirror:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\work\zq-desktop\scripts\run-tests.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\work\zq-desktop\scripts\smoke-test.ps1
+```
+
+## Current Strengths
+
+- The app builds into a real Windows executable.
+- Office outputs can be written as real files, not just described by the model.
+- Multi-provider routing and fallback exist.
+- API key storage uses Windows DPAPI for the current user.
+- Permission, approval, audit, and output primitives exist.
+- Natural-language local actions have begun moving through executor paths.
+- Basic computer-control actions and a read-only Activity Monitor exist, but they are preview-grade.
+- Tests cover important Core and Agent pieces through the custom runner.
+
+## Current Risks
+
+1. `src/ZhuaQianDesktop.cs` is still too large and mixes UI, task orchestration, provider flow, and local action routing.
+2. `src/` and `work/zq-desktop/` can drift while both exist.
+3. Tests are custom scripts, not standard xUnit/NUnit.
+4. Some historical docs contain old source-tree assumptions and old completion numbers.
+5. The security model is prototype-grade, not enterprise endpoint protection.
+
+## Near-Term Priorities
+
+1. Make `src/` the only public contribution source and retire or clearly archive `work/zq-desktop/`.
+2. Continue shrinking `ZhuaQianDesktop.cs` by extracting orchestration into tested modules.
+3. Keep every new side-effect action behind command, permission, executor, audit, and output records.
+4. Convert the task flow toward `Plan -> Approval -> Execute -> Output -> Review`.
+5. Move the test system toward a standard .NET test project after source-tree convergence.
+
+## Documentation Reading Order
+
+1. `README.md`
+2. `docs/DOCUMENTATION_MAP_2026-07-11.md`
+3. `docs/PROJECT_HANDOFF_2026-07-16.md`
+4. `docs/CURRENT_REALITY_2026-07-11.md`
+5. `docs/CODE_COMPLETION_ALIGNMENT.md`
+6. `docs/ARCHITECTURE_CHARTER.md`
+7. `docs/EXECUTION_BACKLOG.md`
+
+Historical files under `docs/archive/` are useful context, but they are not the current source of truth.

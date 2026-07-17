@@ -1,0 +1,30 @@
+﻿ZhuaQian Desktop Verification
+Captured: 2026-07-17T00:35:51.9495454+08:00
+Root: C:\Users\本机\Documents\Codex\2026-07-10\c-users-workbuddy-2026-07-10\work\zq-desktop
+ExitCode: 0
+
+Architecture checks passed.
+Package checks passed.
+Compiling unit tests ...
+Running unit tests ...
+ZhuaQian Desktop module tests
+================================
+[Redactor]
+[Chunker]
+[OfficeExporter]
+[PermissionGate]
+[ConfigStore]
+[OutputsHub]
+[FolderOrganizer]
+[PluginRunner]
+[AgentPlanParser]
+[AgentPlanCommandMapper]
+[AgentPipeline]
+[StreamingBridge]
+[WebSearchClient]
+[ProcessSnapshotCollector]
+[SystemDiagnostics]
+[Smoke]
+================================
+Passed: 186  Failed: 0
+ALL TESTS PASSED

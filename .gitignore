@@ -1,0 +1,43 @@
+# Build outputs
+*.exe
+*.dll
+*.pdb
+dist/
+bin/
+obj/
+out/
+
+# Packaged artifacts (must be produced by CI, never committed by hand).
+# Local dev packages are named *-local-dev.zip and are also ignored.
+*.zip
+
+# Test outputs
+TestResults/
+coverage/
+
+# Local config and secrets
+.env
+.env.*
+!.env.example
+config.json
+*.key
+*.pem
+
+# Logs and runtime data
+*.log
+*.jsonl
+_ZhuaQian_Organized/
+rollback/
+
+# Windows/editor noise
+Thumbs.db
+Desktop.ini
+.vs/
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
