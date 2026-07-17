@@ -13,6 +13,7 @@ namespace ZhuaQianDesktopApp
             string initial = PlanReviewInitialText();
             using (var dlg = new ZhuaQianDesktopApp.Ui.PlanReviewDialog(initial, Tr, uiLanguage))
             {
+                dlg.FullReviewCallback = plan => ShowCodingAgentReport(plan);
                 DialogResult result = dlg.ShowDialog(this);
                 if (result == DialogResult.Retry || dlg.RequestPlanPrompt)
                 {

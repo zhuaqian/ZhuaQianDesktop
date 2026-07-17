@@ -241,4 +241,12 @@ namespace ZhuaQianDesktopApp.Agent
             return "";
         }
     }
+
+    // Public wrapper so a runner can build a command for one step and keep
+    // its StepId for per-step state correlation. No change to existing Map logic.
+    public IAgentCommand BuildCommandForStep(AgentPlan plan, AgentPlanStep step, AgentPlanCommandMapperOptions options)
+    {
+        if (step == null) return null;
+        return BuildCommand(plan, step, options);
+    }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ZhuaQianDesktopApp.Core;
+using ZhuaQianDesktopApp.Agent.Hooks;
 
 namespace ZhuaQianDesktopApp.Agent
 {
@@ -14,6 +15,8 @@ namespace ZhuaQianDesktopApp.Agent
         readonly Dictionary<string, ICommandExecutor> executors = new Dictionary<string, ICommandExecutor>();
 
         public Func<IAgentCommand, bool> RequestApproval;
+
+        public HookRegistry Hooks;
 
         public AgentPipeline(PermissionGate permissionGate, AuditLog auditLog, OutputsHub outputsHub)
         {
@@ -63,6 +66,8 @@ namespace ZhuaQianDesktopApp.Agent
                 return missing;
             }
 
+            if (Hooks != null)
+                Hooks.Run(HookKind.BeforeCommand, new HookContext { Kind = HookKind.BeforeCommand, Command = command });
             CommandResult result;
             try
             {
@@ -73,6 +78,8 @@ namespace ZhuaQianDesktopApp.Agent
                 result = CommandResult.Failed(ex.Message);
             }
 
+            if (Hooks != null)
+                Hooks.Run(HookKind.AfterCommand, new HookContext { Kind = HookKind.AfterCommand, Command = command, Result = result });
             var status = result.Status == CommandStatus.Success ? "ok" : "failed";
             auditLog.Log(command.CommandType, command.DisplaySummary, "agent", command.TaskId, status);
             auditLog.Flush();
@@ -120,6 +127,8 @@ namespace ZhuaQianDesktopApp.Agent
                 return missing;
             }
 
+            if (Hooks != null)
+                Hooks.Run(HookKind.BeforeCommand, new HookContext { Kind = HookKind.BeforeCommand, Command = command });
             CommandResult result;
             try
             {
@@ -134,6 +143,8 @@ namespace ZhuaQianDesktopApp.Agent
                 result = CommandResult.Failed(ex.Message);
             }
 
+            if (Hooks != null)
+                Hooks.Run(HookKind.AfterCommand, new HookContext { Kind = HookKind.AfterCommand, Command = command, Result = result });
             var status = result.Status == CommandStatus.Success ? "ok" : "failed";
             auditLog.Log(command.CommandType, command.DisplaySummary, "agent", command.TaskId, status);
             auditLog.Flush();

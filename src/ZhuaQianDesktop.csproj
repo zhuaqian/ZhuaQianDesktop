@@ -55,9 +55,18 @@
     <Compile Include="Core\ShareCrypto.cs" />
     <Compile Include="Documents\OfficeExporter.cs" />
     <Compile Include="Documents\Redactor.cs" />
+    <Compile Include="Documents\OfficeTemplateLibrary.cs" />
     <Compile Include="Knowledge\Chunker.cs" />
     <Compile Include="Knowledge\VectorIndex.cs" />
     <Compile Include="Plugins\PluginRegistry.cs" />
+    <Compile Include="Plugins\PluginManifest.cs" />
+    <Compile Include="Agent\Hooks\HookKind.cs" />
+    <Compile Include="Agent\Hooks\HookContext.cs" />
+    <Compile Include="Agent\Hooks\IPluginHook.cs" />
+    <Compile Include="Agent\Hooks\HookRegistry.cs" />
+    <Compile Include="Agent\WorkspaceScanSummary.cs" />
+    <Compile Include="Agent\CommandRunRecorder.cs" />
+    <Compile Include="Agent\CodingAgentSession.cs" />
     <Compile Include="Agent\IAgentCommand.cs" />
     <Compile Include="Agent\AgentPlan.cs" />
     <Compile Include="Agent\AgentPlanCommandMapper.cs" />
@@ -73,6 +82,8 @@
     <Compile Include="Agent\ComputerControlExecutor.cs" />
     <Compile Include="Agent\RollbackExecutor.cs" />
     <Compile Include="Agent\WebSearchExecutor.cs" />
+    <Compile Include="Agent\AgentPlanState.cs" />
+    <Compile Include="Agent\AgentPlanRunner.cs" />
     <Compile Include="Tools\ApprovalCard.cs" />
     <Compile Include="Tools\CommandParser.cs" />
     <Compile Include="Tools\ExecutionTimeline.cs" />
@@ -84,6 +95,7 @@
     <Compile Include="Tools\TimelineControl.cs" />
     <Compile Include="Tools\UndoRedoManager.cs" />
     <Compile Include="Tools\WebSearchClient.cs" />
+    <Compile Include="Tools\SystemDiagnostics.cs" />
     <Compile Include="providers\AlibabaQianwenClient.cs" />
     <Compile Include="providers\GeminiClient.cs" />
     <Compile Include="providers\IProviderClient.cs" />
@@ -105,15 +117,15 @@
     <Compile Include="ui\MainForm.PlanReview.cs" />
     <Compile Include="ui\MainForm.PromptWorkbench.cs" />
     <Compile Include="ui\PlanReviewDialog.cs" />
+    <Compile Include="ui\CodingAgentReportDialog.cs" />
+    <Compile Include="ui\MainForm.CodingAgentReview.cs" />
     <Compile Include="ui\PromptWorkbenchDialog.cs" />
     <Compile Include="ui\MainForm.Share.cs" />
     <Compile Include="ui\RightPanel.cs" />
     <Compile Include="ui\SettingsDialog.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="tests\SelfTest.cs" />
-    <Compile Include="tests\TestRunner.cs" />
-    <Compile Include="tests\ZhuaQianDesktop.Tests\ConfigStoreTests.cs" />
-  </ItemGroup>
+  <!-- Unit tests are compiled and run via src/scripts/run-tests.ps1 (csc + /main:TestRunner),
+       NOT via this csproj. Keeping them out of the shipped EXE avoids multiple entry points
+       (CS0017) and prevents test code from being packaged into the release binary. -->
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

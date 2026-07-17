@@ -29,3 +29,7 @@ Desktop.ini
 .env
 .env.*
 secret*.json
+
+# Build artifacts (produced by build.ps1 / csc; never commit)
+*.exe
+*.pdb

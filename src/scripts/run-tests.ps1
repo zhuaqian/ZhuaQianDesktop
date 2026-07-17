@@ -61,46 +61,29 @@ try {
         "System.IO.Compression.FileSystem.dll"
     ) -join ";"
 
-    $relSrc = @(
-        "tests\TestRunner.cs",
-        "Core\ConfigStore.cs",
-        "Core\AuditLog.cs",
-        "Core\PermissionGate.cs",
-        "Core\OutputsHub.cs",
-        "Documents\OfficeExporter.cs",
-        "Documents\Redactor.cs",
-        "Knowledge\Chunker.cs",
-        "Agent\IAgentCommand.cs",
-        "Agent\AgentPlan.cs",
-        "Agent\AgentPlanCommandMapper.cs",
-        "Agent\ICommandExecutor.cs"
-        "Agent\IAsyncCommandExecutor.cs",
-        "Agent\CommandResult.cs",
-        "Agent\AgentPipeline.cs",
-        "Agent\AgentPipelineFactory.cs",
-        "Agent\ExportFileExecutor.cs",
-        "Agent\OrganizeFolderExecutor.cs",
-        "Agent\PluginRunExecutor.cs",
-        "Agent\ProcessManageExecutor.cs",
-        "Agent\ComputerControlExecutor.cs",
-        "Agent\RollbackExecutor.cs",
-        "Agent\WebSearchExecutor.cs",
-        "Tools\ProcessSnapshotCollector.cs",
-        "Tools\SystemDiagnostics.cs",
-        "Tools\FolderOrganizer.cs",
-        "Tools\PluginRunner.cs",
-        "Tools\ApprovalCard.cs",
-        "Tools\WebSearchClient.cs",
-        "providers\StreamingBridge.cs"
-    )
-    $Src = $relSrc | ForEach-Object { Join-Path $Root $_ }
+    # Dynamic enumeration: always in sync with the filesystem and csproj.
+    # Includes test sources (TestRunner + module tests) so the harness compiles,
+    # but excludes the legacy/dead duplicate files (Program.cs, MainForm.cs,
+    # TaskInfo.cs) and the two standalone harnesses (SelfTest.cs, ConfigStoreTests.cs)
+    # which are run separately / via Visual Studio.
+    # The EXE entry (ZhuaQianDesktop.cs) is intentionally included so the MainForm
+    # partial and TaskInfo type are fully defined; /main:TestRunner (below) selects
+    # the test harness entry point to avoid CS0017 (multiple entry points).
+    $deadFiles = @('Program.cs', 'MainForm.cs', 'TaskInfo.cs')
+    $excludeTests = @('SelfTest.cs', 'ConfigStoreTests.cs')
+    $Src = @(Get-ChildItem -Path $Root -Recurse -Filter *.cs |
+        Where-Object {
+            ($deadFiles -notcontains $_.Name) -and
+            (-not (($_.FullName -match '[\\/]tests[\\/]') -and ($excludeTests -contains $_.Name)))
+        } |
+        ForEach-Object { $_.FullName })
 
     $testDir = Join-Path ([System.IO.Path]::GetTempPath()) "ZhuaQianDesktopTests"
     if (-not (Test-Path $testDir)) { New-Item -ItemType Directory -Path $testDir | Out-Null }
     $Out = Join-Path $testDir ("TestRunner-" + [Guid]::NewGuid().ToString("N") + ".exe")
 
     Write-Step "Compiling unit tests ..." Cyan
-    $compileOutput = & $Csc /nologo /target:exe /out:$Out /reference:$Refs $Src 2>&1
+    $compileOutput = & $Csc /nologo /target:exe /out:$Out /main:TestRunner /reference:$Refs $Src 2>&1
     foreach ($line in $compileOutput) { Write-Step ([Convert]::ToString($line)) Gray }
     if ($LASTEXITCODE -ne 0) { throw "Test compilation failed" }
 

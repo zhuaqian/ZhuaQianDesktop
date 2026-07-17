@@ -21,6 +21,12 @@ namespace ZhuaQianDesktopApp.Ui
         public bool RequestExecute { get; private set; }
         public string PlanSource { get { return sourceBox == null ? "" : sourceBox.Text; } }
 
+        // Optional hook invoked by the "Full Review" button: runs the coding-agent
+        // review (workspace scan + diff + build + test) for the current plan and
+        // shows the Plan -> Command -> Diff -> Test -> Review report. Wired by
+        // MainForm.PlanReview.ShowPlanReview so this dialog stays UI-only.
+        public Action<AgentPlan> FullReviewCallback { get; set; }
+
         public PlanReviewDialog(string initialPlan, Func<string, string, string, string> translator = null, string languageCode = "zh-Hans")
         {
             tr = translator ?? ((en, zhHans, zhHant) => en);
@@ -97,6 +103,10 @@ namespace ZhuaQianDesktopApp.Ui
             var close = new Button { Text = T("Close", "关闭", "關閉"), Left = 100, Top = 8, Width = 90, Height = 30 };
             close.Click += (s, e) => Close();
             actions.Controls.Add(close);
+
+            var full = new Button { Text = T("Full Review", "完整审查", "完整審查"), Left = 200, Top = 8, Width = 120, Height = 30 };
+            full.Click += (s, e) => { if (FullReviewCallback != null) FullReviewCallback(parser.Parse(sourceBox.Text)); };
+            actions.Controls.Add(full);
         }
 
         void ParsePlan()

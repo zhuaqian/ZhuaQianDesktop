@@ -10,6 +10,8 @@ using ZhuaQianDesktopApp.Documents;
 using ZhuaQianDesktopApp.Knowledge;
 using ZhuaQianDesktopApp.Tools;
 using ZhuaQianDesktopApp;
+using ZhuaQianDesktopApp.Plugins;
+using ZhuaQianDesktopApp.Agent.Hooks;
 using System.Threading.Tasks;
 
 class TestRunner
@@ -45,6 +47,11 @@ class TestRunner
         TestProcessSnapshotCollector();
         TestSystemDiagnostics();
         TestSmoke();
+        TestPluginManifest();
+        TestHookRegistry();
+        failures += TestWorkspaceScanSummary.RunAll();
+        failures += TestCommandRunRecorder.RunAll();
+        failures += TestCodingAgentSession.RunAll();
 
         Console.WriteLine("================================");
         Console.WriteLine("Passed: " + passed + "  Failed: " + failures);
@@ -799,5 +806,85 @@ class TestRunner
         if (command != null && command.Parameters != null && command.Parameters.TryGetValue(key, out value) && value != null)
             return Convert.ToString(value);
         return "";
+    }
+
+    static void TestPluginManifest()
+    {
+        Console.WriteLine("[PluginManifest]");
+        string dir = Path.Combine(Path.GetTempPath(), "zq_manifest_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string manifestPath = Path.Combine(dir, "plugin.json");
+            File.WriteAllText(manifestPath,
+                "{\"id\":\"summarize\",\"name\":\"Summarize\",\"version\":\"1.0.0\",\"author\":\"me\"," +
+                "\"description\":\"summarize text\",\"entry\":\"run.ps1\",\"entryType\":\"ps1\"," +
+                "\"requiredPermissions\":[\"permFileWrite\"],\"hooks\":[\"AfterCommand\"],\"trusted\":true}");
+            File.WriteAllText(Path.Combine(dir, "run.ps1"), "Write-Output hi");
+
+            var parser = new PluginManifestParser();
+            var ok = parser.ParseFromFile(manifestPath);
+            Assert(ok.Success, "valid manifest parses");
+            Assert(ok.Manifest != null && ok.Manifest.Id == "summarize", "id parsed");
+            Assert(ok.Manifest.EntryType == PluginEntryType.Ps1, "entryType parsed");
+            Assert(ok.Manifest.RequiredPermissions.Contains("permFileWrite"), "permission parsed");
+            Assert(ok.Manifest.Hooks.Contains("AfterCommand"), "hook parsed");
+            Assert(ok.Manifest.Trusted, "trusted parsed");
+
+            var round = parser.ParseFromString(ok.Manifest.ToJson());
+            Assert(round.Success && round.Manifest.Id == "summarize", "round-trips via ToJson");
+
+            var bad = parser.ParseFromString("{\"name\":\"x\",\"entry\":\"run.ps1\",\"entryType\":\"ps1\"}");
+            Assert(!bad.Success && bad.Errors.Exists(e => e.Contains("id")), "missing id rejected");
+
+            var badPerm = parser.ParseFromString("{\"id\":\"x\",\"name\":\"x\",\"version\":\"1.0.0\",\"entry\":\"run.ps1\",\"entryType\":\"ps1\",\"requiredPermissions\":[\"permNope\"]}");
+            Assert(!badPerm.Success && badPerm.Errors.Exists(e => e.Contains("permNope")), "unknown permission rejected");
+
+            var badHook = parser.ParseFromString("{\"id\":\"x\",\"name\":\"x\",\"version\":\"1.0.0\",\"entry\":\"run.ps1\",\"entryType\":\"ps1\",\"hooks\":[\"OnTuesday\"]}");
+            Assert(!badHook.Success && badHook.Errors.Exists(e => e.Contains("OnTuesday")), "unknown hook rejected");
+
+            var traverse = parser.ParseFromString("{\"id\":\"x\",\"name\":\"x\",\"version\":\"1.0.0\",\"entry\":\"..\\\\..\\\\evil.ps1\",\"entryType\":\"ps1\"}");
+            Assert(!traverse.Success, "path traversal entry rejected");
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+    }
+
+    static void TestHookRegistry()
+    {
+        Console.WriteLine("[HookRegistry]");
+        var reg = new HookRegistry();
+        int fired = 0;
+        reg.Register(new TestAfterCommandHook("h1", () => fired++));
+        Assert(reg.Count(HookKind.AfterCommand) == 1, "hook registered");
+        Assert(reg.Get(HookKind.AfterCommand).Count == 1, "Get returns registered");
+        reg.Run(HookKind.AfterCommand, new HookContext { Kind = HookKind.AfterCommand });
+        Assert(fired == 1, "hook invoked on Run");
+
+        int fired2 = 0;
+        reg.Register(new TestAfterCommandHook("h2", () => fired2++));
+        reg.Register(new ThrowingHook("hbad"));
+        reg.Run(HookKind.AfterCommand, new HookContext { Kind = HookKind.AfterCommand });
+        Assert(fired2 == 1, "good hook still runs after a bad one throws");
+        Assert(reg.LastErrors.Exists(e => e.HookId == "hbad"), "bad hook error recorded");
+
+        reg.Run(HookKind.BeforeCommand, new HookContext { Kind = HookKind.BeforeCommand });
+        Assert(true, "Run on empty kind is safe");
+    }
+
+    sealed class TestAfterCommandHook : IPluginHook
+    {
+        readonly Action _onInvoke;
+        public TestAfterCommandHook(string id, Action onInvoke) { Id = id; _onInvoke = onInvoke; }
+        public string Id { get; private set; }
+        public HookKind Kind { get { return HookKind.AfterCommand; } }
+        public void Invoke(HookContext ctx) { _onInvoke(); }
+    }
+
+    sealed class ThrowingHook : IPluginHook
+    {
+        public string Id { get; private set; }
+        public ThrowingHook(string id) { Id = id; }
+        public HookKind Kind { get { return HookKind.AfterCommand; } }
+        public void Invoke(HookContext ctx) { throw new InvalidOperationException("boom"); }
     }
 }

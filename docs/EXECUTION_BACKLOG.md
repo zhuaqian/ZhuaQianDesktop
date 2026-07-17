@@ -93,14 +93,17 @@ Goal: close the Codex/Claude Code gap for repo tasks.
 
 Tasks:
 
-- D1. Add a workspace scan summary: files changed, build commands, test commands, and risk notes.
-- D2. Add command-run records with stdout/stderr summary and exit code.
-- D3. Add a diff/review panel for generated or edited files.
-- D4. Add "run tests after change" workflow with visible pass/fail state.
+- D1. Add a workspace scan summary: files changed, build commands, test commands, and risk notes. **IMPLEMENTED (modules written)** — `src/Agent/WorkspaceScanSummary.cs` (`Capture` via read-only `git status --porcelain` + pure `CollectRiskNotes` for line-budget/`new Tools.` anti-pattern risk). Integration deferred — see `docs/patches/EPIC_D_INTEGRATION.md`.
+- D2. Add command-run records with stdout/stderr summary and exit code. **IMPLEMENTED (modules written)** — `src/Agent/CommandRunRecorder.cs` (`ICommandRecorder` + deadlock-free async stream capture) populating `AgentPlanStepResult` (from `AgentPlanState.cs`).
+- D-orchestrator. **IMPLEMENTED (modules written)** — `src/Agent/CodingAgentSession.cs` composes plan + scan + command-run into one `Plan -> Command -> Diff -> Test -> Review` markdown report (Epic D acceptance narrative).
+- D3. Add a diff/review panel for generated or edited files. **NOT DONE (UI)** — belongs to `MainForm.PlanReview` / `PlanReviewDialog`; recommend P-B after Epic B lands.
+- D4. Add "run tests after change" workflow with visible pass/fail state. **PARTLY** — `CodingAgentSession` already runs + surfaces test pass/fail; the "auto-run after a change" trigger is a UI wiring (P-B).
 
 Acceptance:
 
-- A code task can show Plan -> Command -> Diff -> Test -> Review without leaving the app.
+- A code task can show Plan -> Command -> Diff -> Test -> Review without leaving the app. **On track**: `CodingAgentSession` produces exactly this narrative as a markdown report; wiring it to a UI button remains (D3/D4 UI).
+
+Coordination note: D modules are net-new files (zero conflict with the in-flight Epic B refactor). `AgentPlanState.cs` (per-step state engine) was added by the P-C supervisor session and is also an orphaned file pending csproj registration. Apply `docs/patches/EPIC_D_INTEGRATION.md` (csproj + run-tests.ps1 + TestRunner) only after the concurrent builder merges.
 
 ### Epic E: Tool Ecosystem
 
@@ -108,14 +111,18 @@ Goal: make plugins safer and more reusable.
 
 Tasks:
 
-- E1. Define a simple plugin manifest contract.
-- E2. Add hook points before/after model call, before/after command execution, and before file write.
-- E3. Add MCP compatibility research spike; do not claim MCP support until a real client exists.
-- E4. Add signed/trusted plugin folder guidance.
+- E1. Define a simple plugin manifest contract. **IMPLEMENTED (modules written)** — `src/Plugins/PluginManifest.cs` (`PluginManifest` + `PluginManifestParser` with validation, path-traversal guard, `ToJson` round-trip). JSON via `System.Web.Script.Serialization` (not `System.Text.Json`, which is unreferenced). Integration deferred — see `docs/patches/EPIC_E_INTEGRATION.md`.
+- E2. Add hook points before/after model call, before/after command execution, and before file write. **IMPLEMENTED (modules written)** — `src/Agent/Hooks/{HookKind,HookContext,IPluginHook,HookRegistry}.cs`. Sync, isolated `Run(kind, ctx)`; a throwing hook never breaks the pipeline. `BeforeCommand`/`AfterCommand` wired into `AgentPipeline` via the deferred patch; `BeforeFileWrite` + `Before/AfterModelCall` defined for later adoption.
+- E3. Add MCP compatibility research spike; do not claim MCP support until a real client exists. **DONE** — `docs/MCP_RESEARCH_SPIKE.md`. Explicitly states no MCP support is implemented; hook framework is the future seam.
+- E4. Add signed/trusted plugin folder guidance. **DONE** — `docs/PLUGIN_ECOSYSTEM.md` (trusted-folder allow-list, manifest path-traversal guard, permission surfacing, trust badge guidance).
 
 Acceptance:
 
-- A contributor can add one safe tool without editing the main form.
+- A contributor can add one safe tool without editing the main form. **On track**: manifest + hook modules are new files; once the deferred patch is applied, a tool is described by `plugin.json` and observed via hooks without touching `ZhuaQianDesktop.cs`.
+
+Coordination note: Epic E modules were authored as net-new files only, because the in-flight refactor (main-form export extraction + `outputs/` regen) owns `ZhuaQianDesktop.csproj`, `src/build.ps1`, `src/ZhuaQianDesktop.cs`, `src/ui/MainForm.Export.cs`, `README.md`, `docs/_line_budget.json`, and `outputs/`. Apply `docs/patches/EPIC_E_INTEGRATION.md` only after that refactor lands.
+
+Hook reconciliation (2026-07-17): a second command-hook contract `src/Agent/ICommandHook.cs` appeared from the concurrent builder (P-B) for Epic E2 — it overlapped with `HookRegistry`'s `BeforeCommand`/`AfterCommand`. The in-flight refactor later DELETED `ICommandHook.cs` as dead code, leaving `IPluginHook` (`src/Agent/Hooks/`) as the single hook contract for the project. `HookRegistry` is `IPluginHook`-only; command/model/file hooks all register by `HookKind`. The earlier "duplicate hook" risk on the 23:30 board is therefore resolved by deletion, not adaptation. No duplicate contract remains.
 
 ### Epic F: Office-Workflow Parity
 

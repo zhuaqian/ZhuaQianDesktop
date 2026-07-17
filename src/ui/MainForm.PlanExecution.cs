@@ -57,31 +57,55 @@ namespace ZhuaQianDesktopApp
             }
 
             var pipeline = BuildPlanExecutionPipeline();
+            // Drive the whole plan through AgentPlanRunner so each step's
+            // execution state is tracked and persisted (Epic C / Agent Loop
+            // per-step state engine, closes the "Partly Implemented" gap).
+            var runner = new AgentPlanRunner(pipeline);
+            AgentPlanExecutionState runState = await runner.RunPlanAsync(plan, options, CancellationToken.None);
+
             var sb = new StringBuilder();
             int ok = 0;
-            for (int i = 0; i < mapping.Commands.Count; i++)
+            foreach (var stepRt in runState.Steps)
             {
-                var command = mapping.Commands[i];
-                var result = await pipeline.RunAsync(command, CancellationToken.None);
-                if (result.Status == CommandStatus.Success)
+                string title = string.IsNullOrWhiteSpace(stepRt.Title) ? stepRt.StepId : stepRt.Title;
+                if (stepRt.State == AgentPlanStepState.Done)
                 {
                     ok++;
-                    sb.AppendLine("OK: " + command.DisplaySummary);
-                    if (!string.IsNullOrWhiteSpace(result.ResultPath)) sb.AppendLine("  " + result.ResultPath);
-                    if (!string.IsNullOrWhiteSpace(result.OutputText)) sb.AppendLine("  " + TrimPlanExecutionText(result.OutputText, 1200));
-                    RecordAction(command.CommandType, "success", command.DisplaySummary, result.ResultPath ?? "");
+                    sb.AppendLine("OK: " + title);
+                    if (!string.IsNullOrWhiteSpace(stepRt.Result.OutputSummary)) sb.AppendLine("  " + TrimPlanExecutionText(stepRt.Result.OutputSummary, 1200));
+                    RecordAction("AgentPlanStep", "success", title, "");
                     continue;
                 }
-
-                string error = result.Status == CommandStatus.Cancelled ? "cancelled" :
-                    (result.Status == CommandStatus.Denied ? result.ErrorMessage : result.ErrorMessage);
-                sb.AppendLine("STOP: " + command.DisplaySummary);
-                sb.AppendLine("  " + (error ?? result.Status.ToString()));
-                RecordAction(command.CommandType, result.Status.ToString().ToLowerInvariant(), command.DisplaySummary + " | " + (error ?? ""), "");
-                break;
+                if (stepRt.State == AgentPlanStepState.Skipped)
+                {
+                    sb.AppendLine("SKIP: " + title);
+                    continue;
+                }
+                if (stepRt.State == AgentPlanStepState.Failed)
+                {
+                    sb.AppendLine("STOP: " + title);
+                    sb.AppendLine("  " + (stepRt.Result.ErrorSummary ?? stepRt.State.ToString()));
+                    RecordAction("AgentPlanStep", "failed", title + " | " + (stepRt.Result.ErrorSummary ?? ""), "");
+                    break;
+                }
             }
 
-            SetCurrentTaskStatus(ok == mapping.Commands.Count ? "ready_for_review" : "needs_input", "Plan execution: " + ok + "/" + mapping.Commands.Count, true);
+            SetCurrentTaskStatus(runState.FailedCount == 0 ? "ready_for_review" : "needs_input", "Plan execution: " + runState.ProgressSummary(), true);
+
+            // Codex-style lightweight review: read-only workspace diff + scan
+            // plus the per-step execution state just produced. Recorder is left
+            // null so the UI does NOT auto-run the heavy build/test here —
+            // only a read-only scan. (Full build/test review = separate action.)
+            try
+            {
+                var review = new CodingAgentSession();
+                review.RootDirectory = configDir;
+                review.Recorder = null;
+                var reviewReport = review.Run(plan);
+                AppendChat("ZhuaQian", Tr("Plan review:", "计划审查：", "計畫審查：") + "\r\n" + reviewReport.ToMarkdown(), Color.FromArgb(0, 90, 140));
+            }
+            catch (Exception) { /* review is best-effort, never block the execution result */ }
+
             AppendChat("ZhuaQian", Tr("Plan execution result:", "计划执行结果：", "計畫執行結果：") + "\r\n" + sb.ToString().Trim(), Color.FromArgb(0, 130, 80));
             LogAction("AgentPlan", "Executed " + ok + " / " + mapping.Commands.Count + " mapped plan steps");
         }
