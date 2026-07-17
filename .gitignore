@@ -1,43 +1,31 @@
-# Build outputs
-*.exe
-*.dll
-*.pdb
-dist/
-bin/
-obj/
-out/
+# Build output (produced by build.ps1)
+/dist/
+/bin/
+/obj/
+/generated/
 
-# Packaged artifacts (must be produced by CI, never committed by hand).
-# Local dev packages are named *-local-dev.zip and are also ignored.
+# Generated release packages — regenerate from src/, do not commit
+/outputs/
+
+# Local dev / CI build zips
+*-local-dev.zip
 *.zip
 
-# Test outputs
-TestResults/
-coverage/
+# User-specific IDE/tooling
+*.user
+*.suo
+*.userprefs
+.vs/
 
-# Local config and secrets
+# OS clutter
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Logs
+*.log
+
+# Local secrets / environment
 .env
 .env.*
-!.env.example
-config.json
-*.key
-*.pem
-
-# Logs and runtime data
-*.log
-*.jsonl
-_ZhuaQian_Organized/
-rollback/
-
-# Windows/editor noise
-Thumbs.db
-Desktop.ini
-.vs/
-.vscode/
-.idea/
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
+secret*.json

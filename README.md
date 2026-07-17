@@ -53,13 +53,11 @@ The root `.git` metadata in this workspace is currently not usable, so publish t
 
 ## Source Trees
 
-This workspace currently has three important trees:
+This repository has a single contribution source tree:
 
-- `src/`: preferred contribution source tree; builds and tests successfully
-- `work/zq-desktop/`: transitional runtime mirror used to verify legacy packaging behavior
-- `outputs/ZhuaQianDesktop-open-source/`: generated release package snapshot
+- `src/`: the only public contribution source. It builds and tests successfully, and is the source of truth for the product.
 
-For public open-source work, target `src/` first and keep `work/zq-desktop/` in sync only while the mirror still exists. Do not treat `outputs/` as a development source tree.
+The `work/zq-desktop/` transitional mirror has been **retired** (see `docs/PROJECT_HANDOFF_2026-07-16.md`). `outputs/` is a generated release-package snapshot and must **not** be treated as a development source tree — regenerate it from `src/` only. Build output under `dist/`, `bin/`, `obj/`, and `generated/` is produced locally and never committed (see `.gitignore`).
 
 The `.codex/` and `.agents/` folders are currently empty placeholders in this workspace; they are not active configuration sources.
 
@@ -83,18 +81,16 @@ The stable local executable is always `dist/ZhuaQianDesktop.exe`. If older tagge
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\clean-dist.ps1
 ```
 
-Run tests:
+Run tests (this also compiles the production sources, so a green run means the tree builds):
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\src\scripts\run-tests.ps1
 ```
 
-Verify the transitional runtime mirror:
+## Packaging & Release
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\zq-desktop\scripts\run-tests.ps1
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\work\zq-desktop\scripts\smoke-test.ps1
-```
+- **Local builds are dev-only.** `build.ps1` produces `dist/ZhuaQianDesktop.exe`; the accompanying SHA256 sidecar is written next to it. Treat any local zip you make as `*local-dev*` and never publish it as an official release.
+- **Official release artifacts are produced by CI only.** On a pushed tag, `.github/workflows/tests.yml` builds, runs the test suite, and uploads `ZhuaQianDesktop-<tag>.zip` as a Release artifact. The root `.git` metadata in this workspace is usable; publish from a clean clone or this repository.
 
 ## Read First
 

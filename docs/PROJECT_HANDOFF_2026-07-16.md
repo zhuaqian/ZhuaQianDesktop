@@ -13,19 +13,18 @@ It is not just a chat UI. The product direction is a permission-aware desktop ag
 ## Current Status
 
 - Version stage: v0.1 prototype.
-- Public source target: `src/`.
-- Transitional mirror: `work/zq-desktop/`.
-- Generated package output: `outputs/ZhuaQianDesktop-open-source/`.
-- Latest verified result in this workspace: root build passed; both `src` and `work/zq-desktop` test suites passed with `186` passed / `0` failed; architecture/package checks passed.
-- Git metadata in this local workspace is not usable; public release should be done from a repaired clone or clean Git initialization.
+- Public source target: `src/` (the single source tree).
+- Transitional mirror: retired (was `work/zq-desktop/`).
+- Generated package output: `outputs/ZhuaQianDesktop-open-source/` (regenerate from `src/`).
+- Latest verified result in this workspace: root build passed; the `src` test suite passed with `186` passed / `0` failed; architecture/package checks passed.
+- Git metadata in this workspace is usable; publish from this repository or a clean clone.
 
 ## Directory Guide
 
 | Path | Meaning | Edit? |
 |---|---|---|
-| `src/` | Main contributor source tree. Build and tests currently pass here. | Yes |
-| `work/zq-desktop/` | Transitional runtime mirror kept for compatibility verification. | Only when syncing or fixing mirror-specific runtime behavior |
-| `outputs/` | Generated release package and binaries. | No, regenerate instead |
+| `src/` | **The single public contribution source tree.** Build and tests pass here. | Yes |
+| `outputs/` | Generated release-package snapshot. Regenerate from `src/`; never edit by hand. | No, regenerate instead |
 | `dist/` | Build output from root build. | No |
 | `docs/` | Current docs plus archived historical notes. | Yes, but update core docs rather than adding loose reports |
 | `assets/` | Screenshots used by docs/release material. | Yes, when updating visual evidence |
@@ -73,10 +72,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\src\scripts\run-tests.ps1
 
 When behavior also exists in the transitional mirror:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\work\zq-desktop\scripts\run-tests.ps1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\work\zq-desktop\scripts\smoke-test.ps1
-```
+> The `work/zq-desktop/` transitional mirror has been **retired**. The `src/` tree is the only source. If you still have a local `work/zq-desktop/` checkout, delete it — it is no longer maintained and will drift from `src/`.
 
 ## Current Strengths
 
@@ -99,7 +95,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\work\zq-desktop\scripts\sm
 
 ## Near-Term Priorities
 
-1. Make `src/` the only public contribution source and retire or clearly archive `work/zq-desktop/`.
+1. `work/zq-desktop/` has been retired; `src/` is the single public contribution source. Generated `outputs/` and `dist/` are git-ignored and regenerated from `src/`.
 2. Continue shrinking `ZhuaQianDesktop.cs` by extracting orchestration into tested modules.
 3. Keep every new side-effect action behind command, permission, executor, audit, and output records.
 4. Convert the task flow toward `Plan -> Approval -> Execute -> Output -> Review`.
