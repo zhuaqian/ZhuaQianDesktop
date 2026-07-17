@@ -21,6 +21,8 @@ Updated: 2026-07-17
 - Agent executor registration is centralized in `AgentPipelineFactory`; the main form no longer hand-registers each executor at every side-effect call site.
 - `AgentPlanCommandMapper` and plan execution sources are synchronized into the `work/zq-desktop` mirror.
 - Current verification: both test suites are `186` passed / `0` failed, architecture/package checks pass.
+- Installer delivered: `installer/Install.ps1` + `Uninstall.ps1` + `Build-Bundle.ps1` stage the CI-built `dist/ZhuaQianDesktop.exe` to Program Files with SHA-256 verification, shortcuts, and an uninstall registry entry. README "Install" section added; Installer moved out of "Not implemented yet".
+- Epic A5 effectively done: local Git repo is a clean linear 9-commit history, `.github/workflows/tests.yml` provides CI build+test, README git claim corrected.
 
 ## Highest Priority
 
@@ -93,15 +95,15 @@ Goal: close the Codex/Claude Code gap for repo tasks.
 
 Tasks:
 
-- D1. Add a workspace scan summary: files changed, build commands, test commands, and risk notes. **IMPLEMENTED (modules written)** — `src/Agent/WorkspaceScanSummary.cs` (`Capture` via read-only `git status --porcelain` + pure `CollectRiskNotes` for line-budget/`new Tools.` anti-pattern risk). Integration deferred — see `docs/patches/EPIC_D_INTEGRATION.md`.
-- D2. Add command-run records with stdout/stderr summary and exit code. **IMPLEMENTED (modules written)** — `src/Agent/CommandRunRecorder.cs` (`ICommandRecorder` + deadlock-free async stream capture) populating `AgentPlanStepResult` (from `AgentPlanState.cs`).
-- D-orchestrator. **IMPLEMENTED (modules written)** — `src/Agent/CodingAgentSession.cs` composes plan + scan + command-run into one `Plan -> Command -> Diff -> Test -> Review` markdown report (Epic D acceptance narrative).
-- D3. Add a diff/review panel for generated or edited files. **NOT DONE (UI)** — belongs to `MainForm.PlanReview` / `PlanReviewDialog`; recommend P-B after Epic B lands.
-- D4. Add "run tests after change" workflow with visible pass/fail state. **PARTLY** — `CodingAgentSession` already runs + surfaces test pass/fail; the "auto-run after a change" trigger is a UI wiring (P-B).
+- D1. Add a workspace scan summary: files changed, build commands, test commands, and risk notes. **IMPLEMENTED + INTEGRATED** — `src/Agent/WorkspaceScanSummary.cs` (`Capture` via read-only `git status --porcelain` + pure `CollectRiskNotes` for line-budget/`new Tools.` anti-pattern risk). Registered in csproj; `build.ps1`/`run-tests.ps1` are dynamic (auto-include).
+- D2. Add command-run records with stdout/stderr summary and exit code. **IMPLEMENTED + INTEGRATED** — `src/Agent/CommandRunRecorder.cs` (`ICommandRecorder` + deadlock-free async stream capture) populating `AgentPlanStepResult` (from `AgentPlanState.cs`). Registered in csproj; build scripts dynamic.
+- D-orchestrator. **IMPLEMENTED + INTEGRATED** — `src/Agent/CodingAgentSession.cs` composes plan + scan + command-run into one `Plan -> Command -> Diff -> Test -> Review` markdown report (Epic D acceptance narrative). Registered in csproj; build scripts dynamic.
+- D3. Add a diff/review panel for generated or edited files. **DONE (UI)** — `PlanReviewDialog` (plan parse + approval grid + review text, wired to "Agent Planner" button) plus `CodingAgentReportDialog` + `MainForm.CodingAgentReview` ("Full Review" button runs the full build+test review). A read-only post-execution review is also appended to chat by `ExecutePlanDraft` (`Recorder=null`).
+- D4. Add "run tests after change" workflow with visible pass/fail state. **DONE** — read-only review after execution (`Recorder=null`) surfaces build/test pass/fail in chat; the "Full Review" action runs the real build+test and shows pass/fail in `CodingAgentReportDialog`.
 
 Acceptance:
 
-- A code task can show Plan -> Command -> Diff -> Test -> Review without leaving the app. **On track**: `CodingAgentSession` produces exactly this narrative as a markdown report; wiring it to a UI button remains (D3/D4 UI).
+- A code task can show Plan -> Command -> Diff -> Test -> Review without leaving the app. **DONE**: `CodingAgentSession` produces exactly this narrative; it is surfaced via `PlanReviewDialog` (plan review), the post-execution chat review (`ExecutePlanDraft`), and `CodingAgentReportDialog` ("Full Review" with real build+test).
 
 Coordination note: D modules are net-new files (zero conflict with the in-flight Epic B refactor). `AgentPlanState.cs` (per-step state engine) was added by the P-C supervisor session and is also an orphaned file pending csproj registration. Apply `docs/patches/EPIC_D_INTEGRATION.md` (csproj + run-tests.ps1 + TestRunner) only after the concurrent builder merges.
 
@@ -130,7 +132,7 @@ Goal: close the WorkBuddy-style natural-language office gap.
 
 Tasks:
 
-- F1. Add office templates for PPT, PDF, Excel, Word, and PNG.
+- F1. Add office templates for PPT, PDF, Excel, Word, and PNG. **IMPLEMENTED** — `src/Documents/OfficeTemplateLibrary.cs` (SalesPitch/MeetingMinutes/Report/DataTable/Poster, round-trip via `OfficeExporter`) + `src/tests/TestOfficeTemplateLibrary.cs` (wired in `TestRunner`, 189→190 tests).
 - F2. Add a review/edit step before writing high-value office files.
 - F3. Add "use current web research before generating office file" as a first-class workflow.
 - F4. Add examples for sales deck, meeting minutes, report, spreadsheet, and poster generation.

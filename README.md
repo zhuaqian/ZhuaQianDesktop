@@ -35,7 +35,9 @@ Partly implemented:
 
 Not implemented yet:
 
-- Installer, clean Git history in this local workspace, MCP integration, signed plugin ecosystem, full UI automation tests, enterprise endpoint security, and kernel-level monitoring.
+- MCP integration, signed plugin ecosystem, full UI automation tests, enterprise endpoint security, and kernel-level monitoring.
+
+> Note: a PowerShell-based installer (`installer/Install.ps1`) now ships with the repo and installs the CI-built `dist/ZhuaQianDesktop.exe` to Program Files with SHA-256 verification, shortcuts, and an uninstall entry. The local workspace already has a clean linear 9-commit history; publish from a clean clone if you want a pristine public history.
 
 ## Current Status
 
@@ -49,7 +51,7 @@ Verified on 2026-07-17 in this workspace:
 - `work/zq-desktop/scripts/smoke-test.ps1`: passed
 - Architecture and package checks: passed
 
-The root `.git` metadata in this workspace is currently not usable, so publish this repository from a clean Git initialization or a repaired Git clone.
+The local workspace Git repository is usable (linear history, see `git log`). For a pristine public history, publish from a clean clone.
 
 ## Source Trees
 
@@ -86,6 +88,23 @@ Run tests (this also compiles the production sources, so a green run means the t
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\src\scripts\run-tests.ps1
 ```
+
+## Install (from a release artifact)
+
+`installer/Install.ps1` stages a built `dist/ZhuaQianDesktop.exe` on the local machine. It requires administrator privileges, verifies the `.sha256` sidecar, creates Start Menu / Desktop shortcuts, and writes an uninstall entry under `Programs and Features`.
+
+```powershell
+# from an elevated PowerShell prompt, in the repo root
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\Install.ps1
+```
+
+To produce a distributable zip (executable + installer + README + LICENSE):
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\Build-Bundle.ps1
+```
+
+Uninstall with `installer/Uninstall.ps1` (also elevated) or via Programs and Features.
 
 ## Packaging & Release
 

@@ -26,14 +26,18 @@
 - `build.ps1` 原 `$src` 缺 `AgentPlanState.cs`/`AgentPlanRunner.cs`，但 `MainForm.PlanExecution.cs`
   调用 `new AgentPlanRunner(...)` → `build.ps1` 原本编不过。本回合已补登记，修复。
 
-## 待登记：Epic F1 办公模板库（2026-07-17 后续回合，本会话新增）
+## 已登记：Epic F1 办公模板库（2026-07-17 后续回合新增；TestRunner 接入本回合）
 
 新增两个 net-new 文件（不触碰任何现有文件，不撞构建进程在制品）：
 
 - `src/Documents/OfficeTemplateLibrary.cs` —— 模板库本体（SalesPitch/MeetingMinutes/Report/DataTable/Poster）。
 - `src/tests/TestOfficeTemplateLibrary.cs` —— 自带 `static int RunAll()` 的环回测试（生成文本 → 交给 OfficeExporter 验证产出合法 zip/png）。
 
-### 需补的构建登记（等构建进程停手后应用，避免与 csproj/build.ps1/run-tests.ps1 当前在制品冲突）
+### 构建登记（已应用 — 历史步骤保留供追溯）
+
+> `build.ps1` / `run-tests.ps1` 已在 a123ec5 改为 `Get-ChildItem` 动态枚举，自动拾取 `src/` 全部 `.cs`，
+> 故步骤 2/3 的手动 build/run-tests 登记现已**多余**。步骤 1（csproj `Documents\OfficeTemplateLibrary.cs`）
+> 已在 a123ec5 落地（csproj 仍显式）。步骤 4（TestRunner 接入 `TestOfficeTemplateLibrary.RunAll()`）本回合完成。
 
 1. `src/ZhuaQianDesktop.csproj`：在 `<Compile Include="Documents\Redactor.cs" />` 之后加一行
    ```

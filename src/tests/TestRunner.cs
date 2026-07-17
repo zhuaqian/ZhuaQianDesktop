@@ -52,6 +52,7 @@ class TestRunner
         failures += TestWorkspaceScanSummary.RunAll();
         failures += TestCommandRunRecorder.RunAll();
         failures += TestCodingAgentSession.RunAll();
+        failures += TestOfficeTemplateLibrary.RunAll();
 
         Console.WriteLine("================================");
         Console.WriteLine("Passed: " + passed + "  Failed: " + failures);

@@ -33,8 +33,26 @@
 - [ ] Activity Monitor 仍为手动快照
 - [ ] Provider mock 覆盖薄
 
-## Not Done（需用户拍板 / 外部资源）
-- [ ] **push 到 GitHub 仓库**（需你给仓库地址 + 凭证）→ 接通 CI
+## 用户指令（2026-07-18 00:00）：全部做完，再开源
+- 老李明确：先把所有剩余工作收口，**最后一步才开源**（push GitHub / 公开仓库）。
+- 因此「push 到 GitHub 仓库」从"尽早接通 CI"降级为**收尾闸门**——不在开发中途做，避免半成品外流。
+-  consequence：本会话继续在沙箱内做可编译的代码端收口（net-new + 清理 + 文档），开源动作留到最后。
+
+### 开源前收尾路线图（按依赖排序，未完成项即下方 Not Done）
+1. **本地 full build + run-tests 全绿**（用户真机，沙箱禁 csc）→ 验证所有在制品 + F1 模板库实际可编。
+2. 构建进程收口 Epic E 集成并**提交**（Hooks / PluginManifest / CodingAgentSession / AgentPlanState / AgentPlanRunner）。
+3. 接 UI 入口消费 F1 模板库（谁有空谁做，不冲突）。
+4. **Installer**（需用户定格式：InnoSetup / NSIS / MSIX？）。
+5. **真实 MCP client 集成**（需用户定接哪些 MCP server）。
+6. **企业级安全 / 内核监控 / 反作弊驱动**（需用户定范围，外部依赖重，风险最高）。
+7. 完整 UI 自动化测试 + 标准测试框架（可替换自定义 TestRunner）。
+8. 开源前安全审查：`.gitignore` 收紧 + 密钥/敏感信息扫描 + README/LICENSE。
+9. **【最终步】push GitHub + 公开仓库**（用户给地址 + 凭证）。
+
+> 标记 ⚠️ 的项需用户拍板外部资源/方向，本会话无法独自收口；其余代码端项本会话可在沙箱内继续推进。
+
+## Not Done（需用户拍板 / 外部资源，按完成度排序）
+- [ ] **push 到 GitHub 仓库 / 开源**（**最终步：全部做完才做**）→ 仓库地址 + 凭证由用户给，公开前需 full build/tests 绿 + 安全审查
 - [ ] Installer
 - [ ] MCP 集成（仅调研文档，无真实 client）
 - [ ] 企业级安全 / 内核监控 / 反作弊驱动
@@ -113,3 +131,12 @@
 
 边界说明：OfficeTemplateLibrary 是纯库，不引用任何 UI，也不被现有代码引用（由构建进程后续接 UI/命令入口即可）。
 验证状态：沙箱禁 csc，未编译；需用户本地 build.ps1 + run-tests.ps1 全绿确认。
+
+## 当前状态（本会话收口后，2026-07-17 深夜）
+
+- **构建清单自洽**：build.ps1 + run-tests.ps1 已动态枚举（a123ec5）；csproj 80 个 Compile Include 完整覆盖所有新模块，无 tests/、无死文件泄漏。新增 .cs 无需手动改 build/run-tests（动态自动拾取），但 csproj 仍需手动加（本会话已加 D3 两文件）。
+- **Epic D 全收口**：D1/D2/D-orchestrator 模块已写入并登记；D3 差量审查面板已落地（PlanReviewDialog 计划审查 + 执行后只读审查进聊天 + CodingAgentReportDialog "Full Review" 跑完整 build+test）；D4 "run tests after change" 由只读审查 + Full Review 覆盖。
+- **Epic F1 已完成**：OfficeTemplateLibrary.cs（5 模板 + OfficeExporter round-trip）+ TestOfficeTemplateLibrary.cs（已接入 TestRunner，189→190）。
+- **风险**：全部在制品未提交；沙箱禁 csc 未经真编译；主文件 3624 非空行 = 预算零余量（本会话未碰主文件）。
+- 建议：用户本地 `build.ps1` + `run-tests.ps1` 全绿后，一次性提交本夜全部 Epic C/D/E/F 净新增 + 构建文件改动。
+- 补丁文档 `docs/patches/EPIC_*_INTEGRATION.md` / `NEW_MODULES_BUILD_REGISTRATION.md` 现已过时（build 动态、csproj 已登记），可标记 obsolete 或删除。
