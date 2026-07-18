@@ -36,7 +36,7 @@ namespace ZhuaQianDesktopApp.Tools
 
         public async Task<BrowserActionResult> StartAsync(bool headless = true, string viewport = "1280x800", string userAgent = null, string storageStatePath = null, CancellationToken token = default(CancellationToken))
         {
-            if (IsStarted) return BrowserActionResult.Ok("already started");
+            if (IsStarted) return BrowserActionResult.Success("already started");
             try
             {
                 EnsureBrowsersInstalled();
@@ -55,7 +55,7 @@ namespace ZhuaQianDesktopApp.Tools
 
                 context = await browser.NewContextAsync(ctxOpts).ConfigureAwait(false);
                 page = await context.NewPageAsync().ConfigureAwait(false);
-                return BrowserActionResult.Ok("browser started");
+                return BrowserActionResult.Success("browser started");
             }
             catch (Exception ex)
             {
@@ -65,10 +65,10 @@ namespace ZhuaQianDesktopApp.Tools
 
         public async Task StopAsync()
         {
-            if (page != null) { try { await page.CloseAsync().ConfigureAwait(false); } catch { } page = null; }
-            if (context != null) { try { await context.CloseAsync().ConfigureAwait(false); } catch { } context = null; }
-            if (browser != null) { try { await browser.CloseAsync().ConfigureAwait(false); } catch { } browser = null; }
-            if (playwright != null) { try { playwright.Dispose(); } catch { } playwright = null; }
+            if (page != null) { try { await page.CloseAsync().ConfigureAwait(false); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient close page: " + ex.Message); } page = null; }
+            if (context != null) { try { await context.CloseAsync().ConfigureAwait(false); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient close context: " + ex.Message); } context = null; }
+            if (browser != null) { try { await browser.CloseAsync().ConfigureAwait(false); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient close browser: " + ex.Message); } browser = null; }
+            if (playwright != null) { try { playwright.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient dispose playwright: " + ex.Message); } playwright = null; }
         }
 
         // ---- Observe ---------------------------------------------------------
@@ -106,10 +106,10 @@ namespace ZhuaQianDesktopApp.Tools
                         string name = await h.GetAttributeAsync("name").ConfigureAwait(false) ?? "";
                         string type = await h.GetAttributeAsync("type").ConfigureAwait(false) ?? "";
                         string text = "";
-                        try { text = (await h.InnerTextAsync().ConfigureAwait(false)) ?? ""; } catch { }
+                        try { text = (await h.InnerTextAsync().ConfigureAwait(false)) ?? ""; } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient inner text: " + ex.Message); }
                         string selector = BuildSelector(tag, id, name, type);
                         BoundingBox box = null;
-                        try { box = await h.BoundingBoxAsync().ConfigureAwait(false); } catch { }
+                        try { box = await h.BoundingBoxAsync().ConfigureAwait(false); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient bounding box: " + ex.Message); }
                         var el = new DomElement
                         {
                             Tag = tag.ToLowerInvariant(),
@@ -123,10 +123,10 @@ namespace ZhuaQianDesktopApp.Tools
                         }
                         outList.Add(el);
                     }
-                    catch { }
+                    catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient collect element: " + ex.Message); }
                 }
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient observe DOM: " + ex.Message); }
             return outList;
         }
 
@@ -153,7 +153,7 @@ namespace ZhuaQianDesktopApp.Tools
             try
             {
                 await page.GotoAsync(url, new PageGotoOptions { WaitUntil = WaitUntilState.Networkidle, Timeout = timeoutMs }).ConfigureAwait(false);
-                return BrowserActionResult.Ok("navigated to " + url);
+                return BrowserActionResult.Success("navigated to " + url);
             }
             catch (Exception ex) { return BrowserActionResult.Fail("navigate failed: " + ex.Message); }
         }
@@ -165,7 +165,7 @@ namespace ZhuaQianDesktopApp.Tools
             {
                 await page.WaitForSelectorAsync(selector, new PageWaitForSelectorOptions { Timeout = timeoutMs, State = WaitForSelectorState.Visible }).ConfigureAwait(false);
                 await page.ClickAsync(selector, new PageClickOptions { Timeout = timeoutMs }).ConfigureAwait(false);
-                return BrowserActionResult.Ok("clicked " + selector);
+                return BrowserActionResult.Success("clicked " + selector);
             }
             catch (Exception ex) { return BrowserActionResult.Fail("click failed: " + ex.Message); }
         }
@@ -178,7 +178,7 @@ namespace ZhuaQianDesktopApp.Tools
             {
                 var locator = page.GetByText(text);
                 await locator.First.ClickAsync(new LocatorClickOptions { Timeout = timeoutMs }).ConfigureAwait(false);
-                return BrowserActionResult.Ok("clicked text: " + text);
+                return BrowserActionResult.Success("clicked text: " + text);
             }
             catch (Exception ex) { return BrowserActionResult.Fail("click-text failed: " + ex.Message); }
         }
@@ -190,7 +190,7 @@ namespace ZhuaQianDesktopApp.Tools
             {
                 await page.WaitForSelectorAsync(selector, new PageWaitForSelectorOptions { Timeout = timeoutMs }).ConfigureAwait(false);
                 await page.FillAsync(selector, value ?? "", new PageFillOptions { Timeout = timeoutMs }).ConfigureAwait(false);
-                return BrowserActionResult.Ok("filled " + selector);
+                return BrowserActionResult.Success("filled " + selector);
             }
             catch (Exception ex) { return BrowserActionResult.Fail("fill failed: " + ex.Message); }
         }
@@ -207,7 +207,7 @@ namespace ZhuaQianDesktopApp.Tools
                 var handle = string.IsNullOrEmpty(selector) ? null : await page.QuerySelectorAsync(selector).ConfigureAwait(false);
                 if (handle != null) await handle.FocusAsync().ConfigureAwait(false);
                 await page.Keyboard.TypeAsync(text ?? "", new KeyboardTypeOptions { Delay = 20 }).ConfigureAwait(false);
-                return BrowserActionResult.Ok("typed " + (text ?? "").Length + " chars");
+                return BrowserActionResult.Success("typed " + (text ?? "").Length + " chars");
             }
             catch (Exception ex) { return BrowserActionResult.Fail("type failed: " + ex.Message); }
         }
@@ -218,7 +218,7 @@ namespace ZhuaQianDesktopApp.Tools
             try
             {
                 await page.Keyboard.PressAsync(key ?? "Enter").ConfigureAwait(false);
-                return BrowserActionResult.Ok("pressed " + key);
+                return BrowserActionResult.Success("pressed " + key);
             }
             catch (Exception ex) { return BrowserActionResult.Fail("press failed: " + ex.Message); }
         }
@@ -229,7 +229,7 @@ namespace ZhuaQianDesktopApp.Tools
             try
             {
                 await page.PressAsync(formSelector + " input", "Enter").ConfigureAwait(false);
-                return BrowserActionResult.Ok("submitted " + formSelector);
+                return BrowserActionResult.Success("submitted " + formSelector);
             }
             catch (Exception ex) { return BrowserActionResult.Fail("submit failed: " + ex.Message); }
         }
@@ -267,7 +267,7 @@ namespace ZhuaQianDesktopApp.Tools
     {
         public bool Ok;
         public string Detail;
-        public static BrowserActionResult Ok(string detail) { return new BrowserActionResult { Ok = true, Detail = detail ?? "" }; }
+        public static BrowserActionResult Success(string detail) { return new BrowserActionResult { Ok = true, Detail = detail ?? "" }; }
         public static BrowserActionResult Fail(string detail) { return new BrowserActionResult { Ok = false, Detail = detail ?? "" }; }
     }
 

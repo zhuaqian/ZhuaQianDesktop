@@ -55,7 +55,7 @@ namespace ZhuaQianDesktopApp.Agent
                 if (!File.Exists(abs)) return CommandResult.Failed("edit target missing: " + rel);
                 if (string.IsNullOrEmpty(oldText) || !before.Contains(oldText))
                     return CommandResult.Failed("edit oldText not found in " + rel);
-                after = before.Replace(oldText, newText ?? "", 1);
+                after = ReplaceOnce(before, oldText, newText ?? "");
                 WriteAllText(abs, after);
                 diff = MakeDiff(rel, before, after);
             }
@@ -146,6 +146,14 @@ namespace ZhuaQianDesktopApp.Agent
             string manifest = Path.Combine(Path.GetTempPath(), "zq-manifest-" + Guid.NewGuid().ToString("N") + ".txt");
             File.WriteAllText(manifest, sb.ToString(), Encoding.UTF8);
             return manifest;
+        }
+
+        static string ReplaceOnce(string value, string oldValue, string newValue)
+        {
+            if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(oldValue)) return value ?? "";
+            int index = value.IndexOf(oldValue, StringComparison.Ordinal);
+            if (index < 0) return value;
+            return value.Substring(0, index) + (newValue ?? "") + value.Substring(index + oldValue.Length);
         }
 
         static string GetString(IReadOnlyDictionary<string, object> values, string key)

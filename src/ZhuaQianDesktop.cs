@@ -1255,7 +1255,6 @@ namespace ZhuaQianDesktopApp
                     ForeColor = zqMuted
                 };
                 dlg.Controls.Add(intro);
-
                 AddToolButton(dlg, Tr("Organize Folder", "整理文件夹", "整理資料夾"), 16, 70, (s, e) => OrganizeFolder());
                 AddToolButton(dlg, Tr("Template / Email Draft", "模板/邮件草稿", "範本/郵件草稿"), 260, 70, (s, e) => CreateTemplateOrEmailDraft());
                 AddToolButton(dlg, Tr("Excel Assistant", "Excel 助手", "Excel 助手"), 16, 118, (s, e) => PrepareExcelAssistant());
@@ -1273,6 +1272,7 @@ namespace ZhuaQianDesktopApp
                 AddToolButton(dlg, Tr("Computer Control", "操控电脑", "操控電腦"), 16, 406, (s, e) => ShowComputerControlPrompt());
                 AddToolButton(dlg, Tr("Activity Monitor", "\u8fd0\u884c\u89c2\u5bdf\u53f0", "\u904b\u884c\u89c0\u5bdf\u53f0"), 260, 406, (s, e) => ShowMonitoringPanel());
                 AddToolButton(dlg, Tr("Prompt Workbench", "Prompt 工作台", "Prompt 工作台"), 16, 454, (s, e) => ShowPromptWorkbench());
+                AddToolButton(dlg, Tr("Diagnose & Fix Project", "诊断修复项目", "診斷修復專案"), 260, 454, (s, e) => ChooseDiagnoseFixProject());
                 var close = new Button { Text = Tr("Close", "关闭", "關閉"), Location = new Point(430, 542), Size = new Size(95, 32) };
                 close.Click += (s, e) => dlg.Close();
                 StyleButton(close, ZqButtonRole.Primary);
@@ -1287,7 +1287,6 @@ namespace ZhuaQianDesktopApp
             StyleButton(btn, ZqButtonRole.Secondary);
             dlg.Controls.Add(btn);
         }
-
         void ShowCommandPalette()
         {
             using (var dlg = new Form())
@@ -1362,6 +1361,7 @@ namespace ZhuaQianDesktopApp
                 new KeyValuePair<string, Action>(Tr("Test privacy redaction", "测试隐私脱敏", "測試隱私遮蔽"), () => PreviewRedaction()),
                 new KeyValuePair<string, Action>(Tr("Use current window context", "使用当前窗口上下文", "使用目前視窗上下文"), () => UseActiveWindowContext()),
                 new KeyValuePair<string, Action>(Tr("Agent planner", "Agent 任务规划", "Agent 任務規劃"), () => PrepareAgentPlan()),
+                new KeyValuePair<string, Action>(Tr("Diagnose and fix project", "诊断修复项目", "診斷修復專案"), () => ChooseDiagnoseFixProject()),
                 new KeyValuePair<string, Action>(Tr("Computer control", "操控电脑", "操控電腦"), () => ShowComputerControlPrompt()),
                 new KeyValuePair<string, Action>(Tr("Activity monitor", "\u8fd0\u884c\u89c2\u5bdf\u53f0", "\u904b\u884c\u89c0\u5bdf\u53f0"), () => ShowMonitoringPanel()),
                 new KeyValuePair<string, Action>(Tr("Settings", "设置", "設定"), () => ShowSettings()),

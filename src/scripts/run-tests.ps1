@@ -64,7 +64,7 @@ try {
     # Playwright for .NET (first external dependency) + transitive DLLs. The test
     # EXE must reference these so the browser client (used by validation-only tests)
     # can be JIT-compiled without a full browser install.
-    $packagesDir = Join-Path $Root "src\packages"
+    $packagesDir = Join-Path $Root "packages"
     $pwRefs = New-Object System.Collections.Generic.List[string]
     function Add-PwRefTest($name) {
         $dll = Get-ChildItem -Path $packagesDir -Recurse -Filter $name -ErrorAction SilentlyContinue | Select-Object -First 1

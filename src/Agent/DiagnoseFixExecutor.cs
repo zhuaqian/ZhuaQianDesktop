@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using ZhuaQianDesktopApp.Agent.Coding;
+using ZhuaQianDesktopApp.Core;
 
 namespace ZhuaQianDesktopApp.Agent
 {
@@ -20,16 +22,12 @@ namespace ZhuaQianDesktopApp.Agent
             if (string.IsNullOrWhiteSpace(root))
                 return CommandResult.Failed("DiagnoseFix requires a root directory (Target or root param)");
 
-            var loop = new CodingLoop(root);
+            var gate = new PermissionGate();
+            gate.AutoMode = true;
+            gate.Set("permFileWrite", PermissionLevel.Allow);
+            gate.Set("permCommandRun", PermissionLevel.Allow);
 
-            string buildCmd = GetString(command, "buildCommand");
-            string testCmd = GetString(command, "testCommand");
-            if (!string.IsNullOrWhiteSpace(buildCmd)) loop.BuildCommand = buildCmd;
-            if (!string.IsNullOrWhiteSpace(testCmd)) loop.TestCommand = testCmd;
-
-            int maxIt;
-            if (int.TryParse(GetString(command, "maxIterations"), out maxIt) && maxIt > 0) loop.MaxIterations = maxIt;
-
+            string preApplied = "";
             string patchText = GetString(command, "patch");
             if (!string.IsNullOrWhiteSpace(patchText))
             {
@@ -38,18 +36,27 @@ namespace ZhuaQianDesktopApp.Agent
                     FilePath = GetString(command, "patchFile"),
                     Kind = ChangeKind.Modify,
                     PatchText = patchText,
-                    Rationale = "patch supplied via command parameter"
+                    Rationale = "manual patch supplied from Diagnose & Fix dialog"
                 };
-                var plan = new List<List<UnifiedPatch>> { new List<UnifiedPatch> { patch } };
-                loop.Decider = new ScriptedCodingFixDecider(plan);
-            }
-            else
-            {
-                loop.Decider = new InteractiveCodingFixDecider(ctx => new FixDecision { Stop = true, Rationale = "no model decider configured; diagnose-only" });
+                preApplied = PatchApplier.ApplyToWorkspace(root, patch);
             }
 
-            var report = loop.Run();
-            return CommandResult.Ok(null, false, null, "report", 0, report.ToMarkdown());
+            var options = new BuildFixLoopOptions();
+            options.RootDirectory = root;
+            string buildCmd = GetString(command, "buildCommand");
+            string testCmd = GetString(command, "testCommand");
+            if (!string.IsNullOrWhiteSpace(buildCmd)) options.BuildCommand = buildCmd;
+            if (!string.IsNullOrWhiteSpace(testCmd)) options.TestCommand = testCmd;
+
+            int maxIt;
+            if (int.TryParse(GetString(command, "maxIterations"), out maxIt) && maxIt > 0) options.MaxIterations = maxIt;
+
+            var session = new CodingLoopSession(root, gate, new GuardedCommandRunRecorder(root, gate, null), new RuleBasedFixStrategy());
+            var report = session.Run(command.DisplaySummary, options);
+            string markdown = report.ToMarkdown();
+            if (!string.IsNullOrWhiteSpace(preApplied))
+                markdown = "# Pre-applied Patch\n\n" + preApplied + "\n\n" + markdown;
+            return CommandResult.Ok(null, false, null, "report", 0, markdown);
         }
 
         static string GetString(IAgentCommand command, string key)

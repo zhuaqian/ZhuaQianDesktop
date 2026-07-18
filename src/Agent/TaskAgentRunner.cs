@@ -162,7 +162,8 @@ namespace ZhuaQianDesktopApp.Agent
             finally
             {
                 report.History = history;
-                try { await env.TeardownAsync().ConfigureAwait(false); } catch { }
+                try { await env.TeardownAsync().ConfigureAwait(false); }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("TaskAgentRunner teardown: " + ex.Message); }
             }
         }
     }
@@ -200,8 +201,8 @@ namespace ZhuaQianDesktopApp.Agent
                     case "type": r = await client.TypeAsync(Str(action, "selector"), Str(action, "text"), Int(action, "timeoutMs", 10000), token).ConfigureAwait(false); break;
                     case "press": r = await client.PressKeyAsync(Str(action, "key") ?? "Enter", token).ConfigureAwait(false); break;
                     case "submit": r = await client.SubmitAsync(Str(action, "form") ?? "form", token).ConfigureAwait(false); break;
-                    case "screenshot": r = BrowserActionResult.Ok("screenshot"); await client.ScreenshotAsync(Str(action, "path"), token).ConfigureAwait(false); break;
-                    case "wait": await Task.Delay(Int(action, "ms", 1000), token).ConfigureAwait(false); r = BrowserActionResult.Ok("waited"); break;
+                    case "screenshot": r = BrowserActionResult.Success("screenshot"); await client.ScreenshotAsync(Str(action, "path"), token).ConfigureAwait(false); break;
+                    case "wait": await Task.Delay(Int(action, "ms", 1000), token).ConfigureAwait(false); r = BrowserActionResult.Success("waited"); break;
                     default: return ActionOutcome.Done(false, "unsupported browser action: " + a, false);
                 }
                 return ActionOutcome.Done(r.Ok, r.Detail, !r.Ok);
