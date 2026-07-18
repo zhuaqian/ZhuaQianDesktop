@@ -56,6 +56,12 @@ class TestRunner
         failures += TestOfficeTemplateLibrary.RunAll();
         failures += TestOfficeTemplateExecutor.RunAll();
         failures += TestBrowserRenderClient.RunAll();
+        failures += TestProjectAnalyzer.RunAll();
+        failures += TestCodePatcher.RunAll();
+        failures += TestErrorParser.RunAll();
+        failures += TestBuildFixLoop.RunAll();
+        failures += TestGitWorkflow.RunAll();
+        failures += TestCodingLoopSession.RunAll();
 
         Console.WriteLine("================================");
         Console.WriteLine("Passed: " + passed + "  Failed: " + failures);

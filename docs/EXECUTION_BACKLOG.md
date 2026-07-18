@@ -25,6 +25,7 @@ Updated: 2026-07-18
 - Release trust pipeline added: external review snapshots use `scripts/export-review-snapshot.ps1` (`git archive HEAD` + SHA-256), and `CodingAgentSession` build/test execution now goes through `GuardedCommandRunRecorder`.
 - Installer delivered: `installer/Install.ps1` + `Uninstall.ps1` + `Build-Bundle.ps1` stage the CI-built `dist/ZhuaQianDesktop.exe` to Program Files with SHA-256 verification, shortcuts, and an uninstall registry entry. README "Install" section added; Installer moved out of "Not implemented yet".
 - Epic A5 effectively done: local Git repo is a clean linear 9-commit history, `.github/workflows/tests.yml` provides CI build+test, README git claim corrected.
+- Coding loop delivered: 6 modules in `src/Agent/Coding/` (`ProjectAnalyzer`, `CodePatcher`, `ErrorParser`, `BuildFixLoop`, `GitWorkflow`, `CodingLoopSession`) close the "read project -> fix code -> re-run -> diff/commit" gap vs Codex/Claude Code. Analyze -> Plan -> Execute -> Review -> Done state machine, all side-effects through PermissionGate. 6 test files with `RunAll()` registered in TestRunner. Design doc: `docs/CODING_LOOP_DESIGN.md`.
 
 ## Highest Priority
 
@@ -35,6 +36,7 @@ Updated: 2026-07-18
 | Codex-style coding agent | repo-aware task loop, terminal execution, diffs, tests, review handoff | ZhuaQian has tasks and executors, but no structured plan/diff/test loop | Epic C + Epic D |
 | Claude Code-style agent | explicit plan/approval modes, tool permissioning, hooks/MCP-style extensibility | permissions exist, but plan text is not yet a schema and hooks/MCP are absent | Epic C + Epic E |
 | WorkBuddy-style desktop office assistant | natural-language office work, document generation, desktop-context workflows | ZhuaQian now exports office files and searches web, but workflow templates and review UX are thin | Epic F |
+| OpenCode-style coding agent | LSP code intelligence, subagent orchestration, real MCP client, Plan/Build mode separation, 75+ providers, AGENTS.md, session compaction, multi-session, undo/redo for AI edits | ZhuaQian leads on office generation, browser-render web research, plugin ecosystem, LAN share, self-healing loop; but missing LSP, subagents, MCP client, Plan/Build split, AGENTS.md, session compaction | P0: MCP + LSP + subagents + Plan/Build (see `docs/GAP_VS_OPENCODE.md`) |
 
 ### Epic A: Source-Tree Convergence
 

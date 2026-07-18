@@ -82,6 +82,11 @@
     <Compile Include="Agent\AgentPipelineFactory.cs" />
     <Compile Include="Agent\BrowserFetchExecutor.cs" />
     <Compile Include="Agent\Coding\ProjectAnalyzer.cs" />
+    <Compile Include="Agent\Coding\CodePatcher.cs" />
+    <Compile Include="Agent\Coding\ErrorParser.cs" />
+    <Compile Include="Agent\Coding\BuildFixLoop.cs" />
+    <Compile Include="Agent\Coding\GitWorkflow.cs" />
+    <Compile Include="Agent\Coding\CodingLoopSession.cs" />
     <Compile Include="Agent\ExportFileExecutor.cs" />
     <Compile Include="Agent\OfficeTemplateExecutor.cs" />
     <Compile Include="Agent\OrganizeFolderExecutor.cs" />
