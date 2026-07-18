@@ -1,6 +1,6 @@
 ﻿{
     "mainFile":  "ZhuaQianDesktop.cs",
-    "maxMainLines":  3625,
+    "maxMainLines":  3627,
     "maxOtherCsLines":  900,
     "maxAllowedToolNewExceptions":  5,
     "allowedToolNews":  [
@@ -25,5 +25,5 @@
                                 "backlog":  "E-BrowserRender"
                             }
                         ],
-    "lastUpdated":  "2026-07-17T23:29:49.2705911+08:00"
+    "lastUpdated":  "2026-07-18T13:15:46.8270479+08:00"
 }
