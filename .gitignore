@@ -23,6 +23,9 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+# NuGet packages (restored by nuget restore, never commit)
+src/packages/
+
 # Logs
 *.log
 

@@ -1,42 +1,15 @@
 ﻿ZhuaQian Desktop Verification
-Captured: 2026-07-18T11:10:41.9711240+08:00
+Captured: 2026-07-18T13:18:45.3755042+08:00
 Root: C:\Users\本机\Documents\Codex\2026-07-10\c-users-workbuddy-2026-07-10\src
-ExitCode: 0
+ExitCode: 1
 
 Architecture checks passed.
 Package checks passed.
 Compiling unit tests ...
-Running unit tests ...
-ZhuaQian Desktop module tests
-================================
-[Redactor]
-[Chunker]
-[OfficeExporter]
-[PermissionGate]
-[ConfigStore]
-[OutputsHub]
-[FolderOrganizer]
-[PluginRunner]
-[AgentPlanParser]
-[AgentPlanCommandMapper]
-[AgentPipeline]
-[AgentPipeline.Async]
-[StreamingBridge]
-[WebSearchClient]
-[WebPageReportBuilder]
-[ProcessSnapshotCollector]
-[SystemDiagnostics]
-[Smoke]
-[PluginManifest]
-[HookRegistry]
-[WorkspaceScanSummary]
-  [WorkspaceScanSummary] failures=0
-[CommandRunRecorder]
-  [CommandRunRecorder] failures=0
-[CodingAgentSession]
-  [CodingAgentSession] failures=0
-[OfficeTemplateLibrary]
-[OfficeTemplateExecutor]
-================================
-Passed: 219  Failed: 0
-ALL TESTS PASSED
+Tools\BrowserAgentClient.cs(24,21): error CS0012: ���͡�System.IDisposable����δ�����õĳ����ж��塣������ӶԳ��򼯡�netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51�������á�
+packages\Microsoft.Playwright.1.48.0\lib\netstandard2.0\Microsoft.Playwright.dll: (��ǰһ��������صķ���λ��)
+Tools\BrowserAgentClient.cs(25,18): error CS0012: ���͡�System.IAsyncDisposable����δ�����õĳ����ж��塣������ӶԳ��򼯡�Microsoft.Bcl.AsyncInterfaces, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51�������á�
+packages\Microsoft.Playwright.1.48.0\lib\netstandard2.0\Microsoft.Playwright.dll: (��ǰһ��������صķ���λ��)
+Tools\BrowserAgentClient.cs(245,29): error CS0012: ���͡�System.Object����δ�����õĳ����ж��塣������ӶԳ��򼯡�netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51�������á�
+packages\Microsoft.Playwright.1.48.0\lib\netstandard2.0\Microsoft.Playwright.dll: (��ǰһ��������صķ���λ��)
+FAILED: Test compilation failed
