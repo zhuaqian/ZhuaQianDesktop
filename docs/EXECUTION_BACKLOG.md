@@ -26,6 +26,7 @@ Updated: 2026-07-18
 - Installer delivered: `installer/Install.ps1` + `Uninstall.ps1` + `Build-Bundle.ps1` stage the CI-built `dist/ZhuaQianDesktop.exe` to Program Files with SHA-256 verification, shortcuts, and an uninstall registry entry. README "Install" section added; Installer moved out of "Not implemented yet".
 - Epic A5 effectively done: local Git repo is a clean linear 9-commit history, `.github/workflows/tests.yml` provides CI build+test, README git claim corrected.
 - Coding loop delivered: 6 modules in `src/Agent/Coding/` (`ProjectAnalyzer`, `CodePatcher`, `ErrorParser`, `BuildFixLoop`, `GitWorkflow`, `CodingLoopSession`) close the "read project -> fix code -> re-run -> diff/commit" gap vs Codex/Claude Code. Analyze -> Plan -> Execute -> Review -> Done state machine, all side-effects through PermissionGate. 6 test files with `RunAll()` registered in TestRunner. Design doc: `docs/CODING_LOOP_DESIGN.md`.
+- Compilation blockers fixed + parallel work integrated: `GitWorkflowExecutor` CommandResult API corrected, `MainForm.DiagnoseFix.cs` adds missing `LooksLikeDiagnoseFixRequest`/`ExecuteDiagnoseFix` + dialog wiring, `DiagnoseFixExecutor` registered in factory. All parallel-process source files (Epic D/H executors, tools, UI) committed and registered in csproj. Two coding-loop implementations coexist via namespace isolation (`Agent.Coding` vs `Agent`).
 
 ## Highest Priority
 
