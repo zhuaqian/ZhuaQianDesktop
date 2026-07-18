@@ -39,6 +39,20 @@ namespace ZhuaQianDesktopApp.Agent
             pipeline.Register(new RollbackExecutor(configDir));
             pipeline.Register(new WebSearchExecutor(webSearchClient));
             pipeline.Register(new BrowserFetchExecutor(new BrowserRenderClient(webSearchClient)));
+            // Epic H: browser interaction + desktop screen perception. These let the
+            // agent *complete work* in a real browser (click/fill/submit) and *see*
+            // the desktop before acting (screenshot -> verify), both through the
+            // same permission pipeline (permNetworkUpload / permScreenshot).
+            pipeline.Register(new BrowserControlExecutor(new BrowserAgentClient(webSearchClient), System.IO.Path.Combine(configDir, "browser-shots")));
+            pipeline.Register(new ScreenCaptureExecutor(new DesktopScreenCapture(), System.IO.Path.Combine(configDir, "screen-shots")));
+            // Epic D: coding-agent closed loop building blocks.
+            // configDir is the app config root; the project root for patches/git
+            // is the parent of configDir (fall back to current directory).
+            string projectRoot = configDir != null ? System.IO.Directory.GetParent(configDir)?.FullName : null;
+            if (string.IsNullOrWhiteSpace(projectRoot)) projectRoot = System.IO.Directory.GetCurrentDirectory();
+            pipeline.Register(new PatchExecutor(projectRoot));
+            pipeline.Register(new GitWorkflowExecutor(projectRoot));
+            pipeline.Register(new DiagnoseFixExecutor());
         }
     }
 }

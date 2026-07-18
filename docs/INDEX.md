@@ -53,3 +53,7 @@
 ## Release Trust
 
 - [RELEASE_TRUST_PIPELINE.md](RELEASE_TRUST_PIPELINE.md) - review and release packages must come from committed git/CI artifacts, not manual workspace zips.
+
+## Competitive Strategy
+
+- [COMPETITIVE_DIFFERENTIATION_REPORT_2026-07-18.md](COMPETITIVE_DIFFERENTIATION_REPORT_2026-07-18.md) - Codex / Claude Code / Trae / Cursor gap analysis, ZhuaQian differentiation, and P0-P3 alignment roadmap.

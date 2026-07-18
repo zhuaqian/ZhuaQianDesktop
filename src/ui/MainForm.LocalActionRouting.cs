@@ -231,6 +231,13 @@ namespace ZhuaQianDesktopApp
                 return true;
             }
 
+            if (LooksLikeDiagnoseFixRequest(lower))
+            {
+                ExecuteDiagnoseFix(text);
+                input.Clear();
+                return true;
+            }
+
             return false;
         }
 

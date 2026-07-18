@@ -87,6 +87,17 @@
     <Compile Include="Agent\Coding\BuildFixLoop.cs" />
     <Compile Include="Agent\Coding\GitWorkflow.cs" />
     <Compile Include="Agent\Coding\CodingLoopSession.cs" />
+    <Compile Include="Agent\BrowserControlExecutor.cs" />
+    <Compile Include="Agent\ScreenCaptureExecutor.cs" />
+    <Compile Include="Agent\PatchExecutor.cs" />
+    <Compile Include="Agent\GitWorkflowExecutor.cs" />
+    <Compile Include="Agent\DiagnoseFixExecutor.cs" />
+    <Compile Include="Agent\TaskAgentRunner.cs" />
+    <Compile Include="Agent\CodingLoop.cs" />
+    <Compile Include="Agent\FixLoopRunner.cs" />
+    <Compile Include="Agent\DiffEngine.cs" />
+    <Compile Include="Agent\ProjectScanner.cs" />
+    <Compile Include="Agent\GitWorkflow.cs" />
     <Compile Include="Agent\ExportFileExecutor.cs" />
     <Compile Include="Agent\OfficeTemplateExecutor.cs" />
     <Compile Include="Agent\OrganizeFolderExecutor.cs" />
@@ -111,6 +122,8 @@
     <Compile Include="Tools\BrowserRenderClient.cs" />
     <Compile Include="Tools\WebResearchFetcher.cs" />
     <Compile Include="Tools\WebPageReportBuilder.cs" />
+    <Compile Include="Tools\BrowserAgentClient.cs" />
+    <Compile Include="Tools\DesktopScreenCapture.cs" />
     <Compile Include="Tools\SystemDiagnostics.cs" />
     <Compile Include="providers\AlibabaQianwenClient.cs" />
     <Compile Include="providers\GeminiClient.cs" />
@@ -138,6 +151,8 @@
     <Compile Include="ui\MainForm.CodingAgentReview.cs" />
     <Compile Include="ui\PromptWorkbenchDialog.cs" />
     <Compile Include="ui\MainForm.Share.cs" />
+    <Compile Include="ui\MainForm.DiagnoseFix.cs" />
+    <Compile Include="ui\DiagnoseFixDialog.cs" />
     <Compile Include="ui\RightPanel.cs" />
     <Compile Include="ui\SettingsDialog.cs" />
   </ItemGroup>
