@@ -96,7 +96,7 @@ namespace ZhuaQianDesktopApp.Agent
             return result;
         }
 
-        public async Task<CommandResult> RunAsync(IAgentCommand command, CancellationToken token = default)
+        public async Task<CommandResult> RunAsync(IAgentCommand command, CancellationToken token = default(CancellationToken))
         {
             string permissionName = string.IsNullOrWhiteSpace(command.PermissionName) ? command.CommandType : command.PermissionName;
             var decision = permissionGate.Check(permissionName, command.Target);

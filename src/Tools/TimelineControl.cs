@@ -7,266 +7,204 @@ namespace ZhuaQianDesktopApp
 {
     public class TimelineControl : UserControl
     {
-        private List<TaskTimelineItem> timelineItems;
-        private int currentItemIndex = -1;
-        private Timer timelineUpdateTimer;
-        private Panel contentPanel;
-        private Label timelineTitle;
-        private SplitContainer timelineSplit;
-        private Panel timelineListPanel;
-        private PictureBox timelineIcon;
-        private Label timelineStatus;
-        private Label timelineTime;
-        private Label timelineDescription;
-        private FlowLayoutPanel timelineNavigation;
+        readonly List<TaskTimelineItem> timelineItems = new List<TaskTimelineItem>();
+        int currentItemIndex = -1;
+        Panel timelineListPanel;
+        Label timelineStatus;
+        Label timelineTime;
+        Label timelineDescription;
+        FlowLayoutPanel timelineNavigation;
 
         public TimelineControl()
         {
             InitializeComponent();
-            timelineItems = new List<TaskTimelineItem>();
             SetupTimeline();
         }
 
-        private void InitializeComponent()
+        void InitializeComponent()
         {
-            this.Size = new Size(600, 400);
-            this.Font = new Font("Microsoft YaHei UI", 9f);
-            this.BackColor = Color.White;
+            Size = new Size(600, 400);
+            Font = new Font("Microsoft YaHei UI", 9f);
+            BackColor = Color.White;
 
-            timelineSplit = new SplitContainer()
-            {
-                Dock = DockStyle.Fill,
-                Orientation = Orientation.Horizontal,
-                Panel1MinSize = 60,
-                Panel2MinSize = 200,
-                SplitterWidth = 2,
-                IsSplitterFixed = false
-            };
-            this.Controls.Add(timelineSplit);
+            var split = new SplitContainer();
+            split.Dock = DockStyle.Fill;
+            split.Orientation = Orientation.Horizontal;
+            split.Panel1MinSize = 60;
+            split.Panel2MinSize = 200;
+            split.SplitterWidth = 2;
+            Controls.Add(split);
 
-            timelineListPanel = new Panel()
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(248, 250, 252),
-                BorderStyle = BorderStyle.FixedSingle
-            };
-            timelineSplit.Panel1.Controls.Add(timelineListPanel);
+            timelineListPanel = new Panel();
+            timelineListPanel.Dock = DockStyle.Fill;
+            timelineListPanel.BackColor = Color.FromArgb(248, 250, 252);
+            timelineListPanel.BorderStyle = BorderStyle.FixedSingle;
+            split.Panel1.Controls.Add(timelineListPanel);
 
-            contentPanel = new Panel()
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                Padding = new Padding(16)
-            };
-            timelineSplit.Panel2.Controls.Add(contentPanel);
+            var contentPanel = new Panel();
+            contentPanel.Dock = DockStyle.Fill;
+            contentPanel.BackColor = Color.White;
+            contentPanel.Padding = new Padding(16);
+            split.Panel2.Controls.Add(contentPanel);
 
-            timelineTitle = new Label()
-            {
-                Text = "Execution Timeline",
-                Font = new Font("Microsoft YaHei UI", 12f, FontStyle.Bold),
-                ForeColor = Color.FromArgb(30, 41, 59),
-                Location = new Point(16, 16),
-                AutoSize = true
-            };
-            contentPanel.Controls.Add(timelineTitle);
+            var title = new Label();
+            title.Text = "Execution Timeline";
+            title.Font = new Font("Microsoft YaHei UI", 12f, FontStyle.Bold);
+            title.ForeColor = Color.FromArgb(30, 41, 59);
+            title.Location = new Point(16, 16);
+            title.AutoSize = true;
+            contentPanel.Controls.Add(title);
 
-            timelineStatus = new Label()
-            {
-                Text = "--",
-                Font = new Font("Microsoft YaHei UI", 10f),
-                ForeColor = Color.FromArgb(30, 41, 59),
-                Location = new Point(16, 60),
-                AutoSize = true
-            };
+            timelineStatus = new Label();
+            timelineStatus.Text = "--";
+            timelineStatus.Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold);
+            timelineStatus.ForeColor = Color.FromArgb(30, 41, 59);
+            timelineStatus.Location = new Point(16, 60);
+            timelineStatus.AutoSize = true;
             contentPanel.Controls.Add(timelineStatus);
 
-            timelineTime = new Label()
-            {
-                Text = "",
-                Font = new Font("Microsoft YaHei UI", 8f),
-                ForeColor = Color.FromArgb(100, 116, 139),
-                Location = new Point(16, 90),
-                AutoSize = true
-            };
+            timelineTime = new Label();
+            timelineTime.Text = "";
+            timelineTime.Font = new Font("Microsoft YaHei UI", 8f);
+            timelineTime.ForeColor = Color.FromArgb(100, 116, 139);
+            timelineTime.Location = new Point(16, 90);
+            timelineTime.AutoSize = true;
             contentPanel.Controls.Add(timelineTime);
 
-            timelineDescription = new Label()
-            {
-                Text = "Select an item from the timeline to view details",
-                Font = new Font("Microsoft YaHei UI", 9f),
-                ForeColor = Color.FromArgb(100, 116, 139),
-                Location = new Point(16, 130),
-                AutoSize = true,
-                Width = 560
-            };
+            timelineDescription = new Label();
+            timelineDescription.Text = "Select an item from the timeline to view details";
+            timelineDescription.Font = new Font("Microsoft YaHei UI", 9f);
+            timelineDescription.ForeColor = Color.FromArgb(100, 116, 139);
+            timelineDescription.Location = new Point(16, 130);
+            timelineDescription.AutoSize = true;
+            timelineDescription.MaximumSize = new Size(540, 0);
             contentPanel.Controls.Add(timelineDescription);
 
-            timelineNavigation = new FlowLayoutPanel()
-            {
-                Location = new Point(16, 170),
-                AutoSize = true,
-                FlowDirection = FlowDirection.TopDown,
-                WrapContents = false,
-                Padding = new Padding(0)
-            };
+            timelineNavigation = new FlowLayoutPanel();
+            timelineNavigation.Location = new Point(16, 190);
+            timelineNavigation.AutoSize = true;
+            timelineNavigation.WrapContents = true;
             contentPanel.Controls.Add(timelineNavigation);
         }
 
-        private void SetupTimeline()
+        void SetupTimeline()
         {
             timelineListPanel.Controls.Clear();
             timelineNavigation.Controls.Clear();
 
             for (int i = 0; i < timelineItems.Count; i++)
             {
-                var item = timelineItems[i];
-                var itemPanel = new Panel()
-                {
-                    Size = new Size(200, 50),
-                    Location = new Point(10, 10 + i * 60),
-                    BackColor = item == currentItem ? Color.FromArgb(239, 246, 255) : Color.White,
-                    BorderStyle = BorderStyle.FixedSingle,
-                    Cursor = Cursors.Hand
-                };
+                TaskTimelineItem item = timelineItems[i];
+                bool selected = i == currentItemIndex;
+                int index = i;
 
-                var itemNumber = new Label()
-                {
-                    Text = (i + 1).ToString(),
-                    Font = new Font("Microsoft YaHei UI", 12f, FontStyle.Bold),
-                    ForeColor = item == currentItem ? Color.FromArgb(37, 99, 235) : Color.FromArgb(100, 116, 139),
-                    Location = new Point(8, 8),
-                    AutoSize = true,
-                    Width = 30,
-                    Height = 30
-                };
+                var itemPanel = new Panel();
+                itemPanel.Size = new Size(210, 50);
+                itemPanel.Location = new Point(10, 10 + i * 60);
+                itemPanel.BackColor = selected ? Color.FromArgb(239, 246, 255) : Color.White;
+                itemPanel.BorderStyle = BorderStyle.FixedSingle;
+                itemPanel.Cursor = Cursors.Hand;
+
+                var itemNumber = new Label();
+                itemNumber.Text = (i + 1).ToString();
+                itemNumber.Font = new Font("Microsoft YaHei UI", 11f, FontStyle.Bold);
+                itemNumber.ForeColor = selected ? Color.FromArgb(37, 99, 235) : Color.FromArgb(100, 116, 139);
+                itemNumber.Location = new Point(8, 8);
+                itemNumber.AutoSize = true;
                 itemPanel.Controls.Add(itemNumber);
 
-                var itemStatus = new Label()
-                {
-                    Text = GetStatusEmoji(item.Status),
-                    Font = new Font("Segoe UI Emoji", 12f),
-                    Location = new Point(50, 8),
-                    AutoSize = true
-                };
+                var itemStatus = new Label();
+                itemStatus.Text = GetStatusText(item.Status);
+                itemStatus.Font = new Font("Microsoft YaHei UI", 8f, FontStyle.Bold);
+                itemStatus.Location = new Point(42, 10);
+                itemStatus.AutoSize = true;
                 itemPanel.Controls.Add(itemStatus);
 
-                var itemTitle = new Label()
-                {
-                    Text = item.Title?.Length > 20 ? item.Title.Substring(0, 20) + "..." : item.Title,
-                    Font = new Font("Microsoft YaHei UI", 9f),
-                    ForeColor = item == currentItem ? Color.FromArgb(30, 41, 59) : Color.FromArgb(71, 85, 105),
-                    Location = new Point(70, 12),
-                    AutoSize = true,
-                    Width = 120
-                };
+                var itemTitle = new Label();
+                itemTitle.Text = ShortText(item.Title, 22);
+                itemTitle.Font = new Font("Microsoft YaHei UI", 9f);
+                itemTitle.ForeColor = selected ? Color.FromArgb(30, 41, 59) : Color.FromArgb(71, 85, 105);
+                itemTitle.Location = new Point(78, 10);
+                itemTitle.AutoSize = true;
                 itemPanel.Controls.Add(itemTitle);
 
-                var itemTime = new Label()
-                {
-                    Text = item.TimeStamp?.ToString("HH:mm:ss"),
-                    Font = new Font("Microsoft YaHei UI", 7f),
-                    ForeColor = Color.FromArgb(148, 163, 184),
-                    Location = new Point(70, 28),
-                    AutoSize = true
-                };
+                var itemTime = new Label();
+                itemTime.Text = item.TimeStamp.HasValue ? item.TimeStamp.Value.ToString("HH:mm:ss") : "";
+                itemTime.Font = new Font("Microsoft YaHei UI", 7f);
+                itemTime.ForeColor = Color.FromArgb(148, 163, 184);
+                itemTime.Location = new Point(78, 28);
+                itemTime.AutoSize = true;
                 itemPanel.Controls.Add(itemTime);
 
-                itemPanel.Click += (s, e) => { SelectTimelineItem(i); };
-                ((Panel)s).MouseEnter += (s, e) => { itemPanel.BackColor = Color.FromArgb(239, 246, 255); };
-                ((Panel)s).MouseLeave += (s, e) => { itemPanel.BackColor = (item == currentItem) ? Color.FromArgb(239, 246, 255) : Color.White; };
-
+                itemPanel.Click += delegate { SelectTimelineItem(index); };
                 timelineListPanel.Controls.Add(itemPanel);
 
-                var navButton = new Button()
-                {
-                    Text = (i + 1).ToString(),
-                    Size = new Size(28, 28),
-                    FlatStyle = FlatStyle.Flat,
-                    BackColor = item == currentItem ? Color.FromArgb(37, 99, 235) : Color.FromArgb(226, 232, 240),
-                    ForeColor = item == currentItem ? Color.White : Color.FromArgb(71, 85, 105),
-                    Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold)
-                };
+                var navButton = new Button();
+                navButton.Text = (i + 1).ToString();
+                navButton.Size = new Size(30, 30);
+                navButton.FlatStyle = FlatStyle.Flat;
                 navButton.FlatAppearance.BorderSize = 0;
-                navButton.Click += (s, e) => { SelectTimelineItem(i); };
+                navButton.BackColor = selected ? GetStatusColor(item.Status) : Color.FromArgb(241, 245, 249);
+                navButton.ForeColor = selected ? Color.White : Color.FromArgb(71, 85, 105);
+                navButton.Margin = new Padding(2);
+                navButton.Click += delegate { SelectTimelineItem(index); };
                 timelineNavigation.Controls.Add(navButton);
             }
 
             UpdateTimelineContent();
         }
 
-        private void UpdateTimelineContent()
+        void UpdateTimelineContent()
         {
-            if (currentItemIndex >= 0 && currentItemIndex < timelineItems.Count)
-            {
-                var item = timelineItems[currentItemIndex];
+            if (currentItemIndex < 0 || currentItemIndex >= timelineItems.Count) return;
 
-                timelineStatus.Text = item.Title;
-                timelineStatus.Font = new Font("Microsoft YaHei UI", 10f, FontStyle.Bold);
-                timelineStatus.ForeColor = GetStatusColor(item.Status);
+            TaskTimelineItem item = timelineItems[currentItemIndex];
+            timelineStatus.Text = string.IsNullOrWhiteSpace(item.Title) ? "Untitled step" : item.Title;
+            timelineStatus.ForeColor = GetStatusColor(item.Status);
+            timelineTime.Text = item.TimeStamp.HasValue ? item.TimeStamp.Value.ToString("yyyy-MM-dd HH:mm:ss") : "";
 
-                timelineTime.Text = item.TimeStamp?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
-
-                timelineDescription.Text = $"Status: {item.Status}\nStep: {item.Step}" +
-                                        (item.Details != null ? "\nDetails: " + item.Details : "") +
-                                        (item.OutputFile != null ? "\nOutput: " + item.OutputFile : "");
-
-                timelineDescription.ForeColor = Color.FromArgb(71, 85, 105);
-
-                timelineNavigation.Controls.Clear();
-                for (int i = 0; i < timelineItems.Count; i++)
-                {
-                    var itemNav = timelineItems[i];
-                    var navButton = new Button()
-                    {
-                        Text = (i + 1).ToString(),
-                        Size = new Size(30, 30),
-                        FlatStyle = FlatStyle.Flat,
-                        BackColor = i == currentItemIndex ? GetStatusColor(itemNav.Status) : Color.FromArgb(241, 245, 249),
-                        ForeColor = Color.White,
-                        Font = new Font("Microsoft YaHei UI", 9f, FontStyle.Bold),
-                        Margin = new Padding(2, 2, 2, 2)
-                    };
-                    navButton.FlatAppearance.BorderSize = 0;
-                    navButton.Click += (s, e) => { SelectTimelineItem(i); };
-                    timelineNavigation.Controls.Add(navButton);
-                }
-            }
+            string text = "Status: " + (item.Status ?? "") + "\nStep: " + item.Step.ToString();
+            if (!string.IsNullOrWhiteSpace(item.Details)) text += "\nDetails: " + item.Details;
+            if (!string.IsNullOrWhiteSpace(item.OutputFile)) text += "\nOutput: " + item.OutputFile;
+            timelineDescription.Text = text;
         }
 
-        private void SelectTimelineItem(int index)
+        void SelectTimelineItem(int index)
         {
             if (index < 0 || index >= timelineItems.Count) return;
-
             currentItemIndex = index;
             SetupTimeline();
         }
 
-        private string GetStatusEmoji(string status)
+        string GetStatusText(string status)
         {
-            return status?.ToLower() switch
-            {
-                "pending" or "needs_input" => "⏳",
-                "running" => "🔄",
-                "ready_for_review" or "completed" => "✅",
-                "failed" => "❌",
-                "cancelled" => "⏸️",
-                "editing" => "✏️",
-                _ => "⚪"
-            };
+            string value = status == null ? "" : status.ToLowerInvariant();
+            if (value == "pending" || value == "needs_input") return "...";
+            if (value == "running") return "RUN";
+            if (value == "ready_for_review" || value == "completed") return "OK";
+            if (value == "failed") return "ERR";
+            if (value == "cancelled") return "X";
+            if (value == "editing") return "EDIT";
+            return "?";
         }
 
-        private Color GetStatusColor(string status)
+        Color GetStatusColor(string status)
         {
-            return status?.ToLower() switch
-            {
-                "pending" or "needs_input" => Color.FromArgb(251, 146, 60),
-                "running" => Color.FromArgb(59, 130, 246),
-                "ready_for_review" or "completed" => Color.FromArgb(34, 197, 94),
-                "failed" => Color.FromArgb(239, 68, 68),
-                "cancelled" => Color.FromArgb(107, 114, 128),
-                "editing" => Color.FromArgb(139, 92, 246),
-                _ => Color.FromArgb(156, 163, 175)
-            };
+            string value = status == null ? "" : status.ToLowerInvariant();
+            if (value == "pending" || value == "needs_input") return Color.FromArgb(251, 146, 60);
+            if (value == "running") return Color.FromArgb(59, 130, 246);
+            if (value == "ready_for_review" || value == "completed") return Color.FromArgb(34, 197, 94);
+            if (value == "failed") return Color.FromArgb(239, 68, 68);
+            if (value == "cancelled") return Color.FromArgb(107, 114, 128);
+            if (value == "editing") return Color.FromArgb(139, 92, 246);
+            return Color.FromArgb(156, 163, 175);
+        }
+
+        string ShortText(string value, int max)
+        {
+            if (string.IsNullOrEmpty(value)) return "";
+            if (value.Length <= max) return value;
+            return value.Substring(0, max) + "...";
         }
 
         public void AddTimelineItem(string title, string status, DateTime? timeStamp, int step, string details = null, string outputFile = null)
@@ -281,10 +219,8 @@ namespace ZhuaQianDesktopApp
                 OutputFile = outputFile
             });
 
-            if (currentItemIndex == -1)
-                SelectTimelineItem(0);
-            else
-                SetupTimeline();
+            if (currentItemIndex == -1) currentItemIndex = 0;
+            SetupTimeline();
         }
 
         public void ClearTimeline()

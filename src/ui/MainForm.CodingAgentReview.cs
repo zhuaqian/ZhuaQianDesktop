@@ -24,10 +24,10 @@ namespace ZhuaQianDesktopApp
             if (IsDisposed || Disposing) return;
             try
             {
-                using (var dlg = new CodingAgentReportDialog(report))
+                using (var dlg = new CodingAgentReportDialog(report, null, Tr, uiLanguage))
                     dlg.ShowDialog(this);
             }
-            catch { }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("ShowCodingAgentReport dialog: " + ex.Message); }
         }
 
         // Walk up from start looking for a git repo or build script so the scan

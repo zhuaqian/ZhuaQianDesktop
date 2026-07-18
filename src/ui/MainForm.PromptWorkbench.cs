@@ -13,7 +13,9 @@ namespace ZhuaQianDesktopApp
                 permGate,
                 auditLogPath,
                 input == null ? "" : input.Text,
-                pendingLabels))
+                pendingLabels,
+                Tr,
+                uiLanguage))
             {
                 if (dlg.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(dlg.AssembledPrompt))
                 {

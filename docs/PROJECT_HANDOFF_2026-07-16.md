@@ -2,7 +2,7 @@
 
 Updated: 2026-07-17
 
-This is the short current-state document for a developer or AI agent taking over the project. If older notes disagree with this file, trust this file together with `README.md`, `docs/DOCUMENTATION_MAP_2026-07-11.md`, `docs/CURRENT_REALITY_2026-07-11.md`, and `docs/CODE_COMPLETION_ALIGNMENT.md`.
+This is the short current-state document for a developer or AI agent taking over the project. If older notes disagree with this file, trust this file together with `README.md`, `docs/INDEX.md`, `docs/EXECUTION_BACKLOG.md`, and `docs/ARCHITECTURE_CHARTER.md`.
 
 ## Project Identity
 
@@ -16,7 +16,7 @@ It is not just a chat UI. The product direction is a permission-aware desktop ag
 - Public source target: `src/` (the single source tree).
 - Transitional mirror: retired (was `work/zq-desktop/`).
 - Generated package output: `outputs/ZhuaQianDesktop-open-source/` (regenerate from `src/`).
-- Latest verified result in this workspace: root build passed; the `src` test suite passed with `186` passed / `0` failed; architecture/package checks passed.
+- Latest verified result in this workspace: root build passed; the `src` test suite passed with `219` passed / `0` failed; architecture/package checks passed.
 - Git metadata in this workspace is usable; publish from this repository or a clean clone.
 
 ## Directory Guide
@@ -88,10 +88,9 @@ When behavior also exists in the transitional mirror:
 ## Current Risks
 
 1. `src/ZhuaQianDesktop.cs` is still too large and mixes UI, task orchestration, provider flow, and local action routing.
-2. `src/` and `work/zq-desktop/` can drift while both exist.
-3. Tests are custom scripts, not standard xUnit/NUnit.
-4. Some historical docs contain old source-tree assumptions and old completion numbers.
-5. The security model is prototype-grade, not enterprise endpoint protection.
+2. Tests are custom scripts, not standard xUnit/NUnit.
+3. Some historical docs contain old source-tree assumptions and old completion numbers.
+4. The security model is prototype-grade, not enterprise endpoint protection.
 
 ## Near-Term Priorities
 
@@ -104,11 +103,10 @@ When behavior also exists in the transitional mirror:
 ## Documentation Reading Order
 
 1. `README.md`
-2. `docs/DOCUMENTATION_MAP_2026-07-11.md`
+2. `docs/INDEX.md`
 3. `docs/PROJECT_HANDOFF_2026-07-16.md`
-4. `docs/CURRENT_REALITY_2026-07-11.md`
-5. `docs/CODE_COMPLETION_ALIGNMENT.md`
-6. `docs/ARCHITECTURE_CHARTER.md`
-7. `docs/EXECUTION_BACKLOG.md`
+4. `docs/ARCHITECTURE_CHARTER.md`
+5. `docs/EXECUTION_BACKLOG.md`
+6. `docs/PRODUCT_IMPLEMENTATION_DIRECTION_2026-07-16.md`
 
 Historical files under `docs/archive/` are useful context, but they are not the current source of truth.

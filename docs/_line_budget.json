@@ -1,8 +1,8 @@
 ﻿{
     "mainFile":  "ZhuaQianDesktop.cs",
-    "maxMainLines":  3624,
+    "maxMainLines":  3625,
     "maxOtherCsLines":  900,
-    "maxAllowedToolNewExceptions":  4,
+    "maxAllowedToolNewExceptions":  5,
     "allowedToolNews":  [
                             {
                                 "pattern":  "new Tools.WebSearchClient(",
@@ -19,6 +19,10 @@
                             {
                                 "pattern":  "new Tools.CommandParser(",
                                 "backlog":  "B1-CommandParserExtraction"
+                            },
+                            {
+                                "pattern":  "new Tools.BrowserRenderClient(",
+                                "backlog":  "E-BrowserRender"
                             }
                         ],
     "lastUpdated":  "2026-07-17T23:29:49.2705911+08:00"

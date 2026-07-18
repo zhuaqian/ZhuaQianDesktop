@@ -49,10 +49,10 @@ namespace ZhuaQianDesktopApp.Plugins
         public PluginEntryType EntryType { get; set; }
 
         // Permission keys the plugin needs, e.g. "permFileWrite", "permProcessManage".
-        public List<string> RequiredPermissions { get; set; } = new List<string>();
+        public List<string> RequiredPermissions { get; set; }
 
         // Hook kinds the plugin wants to observe, e.g. "AfterCommand".
-        public List<string> Hooks { get; set; } = new List<string>();
+        public List<string> Hooks { get; set; }
 
         // Minimum app version that understands this manifest (optional).
         public string MinAppVersion { get; set; }
@@ -62,6 +62,12 @@ namespace ZhuaQianDesktopApp.Plugins
 
         // True when the plugin ships from a signed/trusted source (Epic E4).
         public bool Trusted { get; set; }
+
+        public PluginManifest()
+        {
+            RequiredPermissions = new List<string>();
+            Hooks = new List<string>();
+        }
 
         public static PluginManifest FromJson(string json)
         {
@@ -102,7 +108,10 @@ namespace ZhuaQianDesktopApp.Plugins
             try { return ParseFromString(File.ReadAllText(path)); }
             catch (Exception ex)
             {
-                return new PluginManifestParseResult { Success = false, Errors = new List<string> { "read failed: " + ex.Message } };
+                var result = new PluginManifestParseResult();
+                result.Success = false;
+                result.Errors.Add("read failed: " + ex.Message);
+                return result;
             }
         }
 

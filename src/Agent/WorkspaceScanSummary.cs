@@ -13,11 +13,11 @@ namespace ZhuaQianDesktopApp.Agent
     public sealed class WorkspaceScanSummary
     {
         public string RootDirectory = "";
-        public readonly List<string> ChangedFiles = new List<string>();
+        public List<string> ChangedFiles = new List<string>();
         public int ChangedFileCount { get { return ChangedFiles.Count; } }
         public string BuildCommand = @"powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1";
         public string TestCommand = @"powershell -NoProfile -ExecutionPolicy Bypass -File .\src\scripts\run-tests.ps1";
-        public readonly List<string> RiskNotes = new List<string>();
+        public List<string> RiskNotes = new List<string>();
 
         // Capture a summary of the working tree (changed files via git, then risk
         // assessment). Returns an empty changed-files list if git is unavailable
@@ -38,8 +38,9 @@ namespace ZhuaQianDesktopApp.Agent
             var notes = new List<string>();
             if (string.IsNullOrWhiteSpace(rootDirectory) || !Directory.Exists(rootDirectory)) return notes;
 
+            bool hasChangedFiles = changedFiles != null && changedFiles.Count > 0;
             string mainForm = Path.Combine(rootDirectory, "ZhuaQianDesktop.cs");
-            if (File.Exists(mainForm))
+            if (hasChangedFiles && File.Exists(mainForm))
             {
                 int lines = CountLines(mainForm);
                 if (lines > 3895)
@@ -100,7 +101,7 @@ namespace ZhuaQianDesktopApp.Agent
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine("WorkspaceScanSummary git status: " + ex.Message); }
             return files;
         }
 
@@ -108,7 +109,7 @@ namespace ZhuaQianDesktopApp.Agent
         {
             int n = 0;
             try { using (var r = new StreamReader(path)) { while (r.ReadLine() != null) n++; } }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine("WorkspaceScanSummary count lines: " + ex.Message); }
             return n;
         }
 
@@ -123,7 +124,7 @@ namespace ZhuaQianDesktopApp.Agent
                         if (line.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0) return true;
                 }
             }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine("WorkspaceScanSummary file contains: " + ex.Message); }
             return false;
         }
 

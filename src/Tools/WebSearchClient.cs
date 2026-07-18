@@ -29,6 +29,9 @@ namespace ZhuaQianDesktopApp.Tools
         public string Url;
         public string Title;
         public string Text;
+        // Full rendered HTML, populated only when a browser-render fetch requests it.
+        // Absent for static HTTP fetches; report builder ignores it when empty.
+        public string Html;
         public string ErrorMessage;
     }
 
@@ -246,10 +249,15 @@ namespace ZhuaQianDesktopApp.Tools
 
         string Download(string url)
         {
+            try { ServicePointManager.SecurityProtocol = ServicePointManager.SecurityProtocol | SecurityProtocolType.Tls12; }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("WebSearchClient TLS setup: " + ex.Message); }
+
             using (var wc = new WebClient())
             {
                 wc.Encoding = Encoding.UTF8;
-                wc.Headers[HttpRequestHeader.UserAgent] = "ZhuaQianDesktop/0.1";
+                wc.Headers[HttpRequestHeader.UserAgent] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ZhuaQianDesktop/0.1";
+                wc.Headers[HttpRequestHeader.Accept] = "text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5";
+                wc.Headers[HttpRequestHeader.AcceptLanguage] = "zh-CN,zh;q=0.9,en;q=0.8";
                 return wc.DownloadString(url);
             }
         }
@@ -279,7 +287,7 @@ namespace ZhuaQianDesktopApp.Tools
             return Regex.Replace(Decode(StripTags(value ?? "")), "\\s+", " ").Trim();
         }
 
-        string CleanUrl(string value)
+        public string CleanUrl(string value)
         {
             string url = Decode(value ?? "").Trim();
             int uddg = url.IndexOf("uddg=", StringComparison.OrdinalIgnoreCase);
@@ -290,6 +298,8 @@ namespace ZhuaQianDesktopApp.Tools
                 if (amp >= 0) encoded = encoded.Substring(0, amp);
                 url = Uri.UnescapeDataString(encoded);
             }
+            if (Regex.IsMatch(url, @"^(?:www\.)?[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)*\.(?:com|cn|net|org|io|ai|app|dev|top|shop|site|xyz|cc|co|info|biz|me|tv|edu|gov)(?::\d{1,5})?(?:/.*)?$", RegexOptions.IgnoreCase))
+                url = "https://" + url;
             return url;
         }
 

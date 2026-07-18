@@ -45,8 +45,9 @@
 
 【专属职责】只做文档与设计类产出，不写实现代码（不碰 src/ 的业务逻辑）：
 - 通读 docs/ 下尚未收尾的策划/对齐/差距类文档，例如
-  CODE_COMPLETION_ALIGNMENT.md、EXECUTION_BACKLOG.md、CURRENT_GAPS_ASSESSMENT.md、
-  BUG_REVIEW_2026-07-16.md、PRODUCT_IMPLEMENTATION_DIRECTION_2026-07-16.md。
+  EXECUTION_BACKLOG.md、PRODUCT_IMPLEMENTATION_DIRECTION_2026-07-16.md、
+  PRODUCT_REQUIREMENTS.md、PRODUCT_ARCHITECTURE.md、PLUGIN_ECOSYSTEM.md。
+  （早期协调/进度文档已归档至 docs/archive/coordination-2026-07/，以 docs/INDEX.md 为导航。）
 - 把其中「规划了但没落地」的条目，整理成清晰、可执行的下一步清单或设计说明，
   补齐文档缺口，让 Builder（P-B）能照着实现。
 - 你认领 docs/ 里 A–M 字母序的文件为主，N–Z 留给 P-B，避免两人同时改同一篇。

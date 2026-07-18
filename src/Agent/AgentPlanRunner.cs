@@ -33,14 +33,14 @@ namespace ZhuaQianDesktopApp.Agent
         public async Task<AgentPlanExecutionState> RunPlanAsync(
             AgentPlan plan,
             AgentPlanCommandMapperOptions options,
-            CancellationToken token = default)
+            CancellationToken token = default(CancellationToken))
         {
             var state = AgentPlanExecutionState.FromPlan(plan);
             if (plan == null || options == null) return state;
 
             string id = SafeId(string.IsNullOrWhiteSpace(plan.Goal) ? "plan" : plan.Goal);
             try { if (!Directory.Exists(PlanRunsDir)) Directory.CreateDirectory(PlanRunsDir); }
-            catch { /* persistence is best-effort */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("AgentPlanRunner create plan-runs dir: " + ex.Message); }
 
             Persist(state, id);
 

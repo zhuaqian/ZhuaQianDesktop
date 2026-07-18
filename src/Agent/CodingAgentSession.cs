@@ -16,9 +16,10 @@ namespace ZhuaQianDesktopApp.Agent
         public string BuildCommand = @"powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1";
         public string TestCommand = @"powershell -NoProfile -ExecutionPolicy Bypass -File .\src\scripts\run-tests.ps1";
 
-        // Recorder used to run build/test. Defaults to a real CommandRunRecorder;
-        // tests inject a fake to avoid running the (heavy) real build/test.
-        public ICommandRecorder Recorder = new CommandRunRecorder();
+        // Recorder used to run build/test. Null means use the guarded default;
+        // tests inject a fake to avoid running the real build/test commands.
+        public ICommandRecorder Recorder;
+        public bool RunBuildAndTest = true;
 
         public CodingAgentSessionReport Run(AgentPlan plan)
         {
@@ -30,10 +31,11 @@ namespace ZhuaQianDesktopApp.Agent
             report.DiffSummary = BuildDiffSummary(scan);
             report.PlanReview = plan == null ? "No plan provided." : plan.ToReviewMarkdown();
 
-            if (Recorder != null)
+            if (RunBuildAndTest)
             {
-                report.BuildResult = Recorder.Run("powershell", "-NoProfile -ExecutionPolicy Bypass -File .\\build.ps1", RootDirectory);
-                report.TestResult = Recorder.Run("powershell", "-NoProfile -ExecutionPolicy Bypass -File .\\src\\scripts\\run-tests.ps1", RootDirectory);
+                ICommandRecorder recorder = Recorder ?? new GuardedCommandRunRecorder(RootDirectory);
+                report.BuildResult = recorder.Run("powershell", "-NoProfile -ExecutionPolicy Bypass -File .\\build.ps1", RootDirectory);
+                report.TestResult = recorder.Run("powershell", "-NoProfile -ExecutionPolicy Bypass -File .\\src\\scripts\\run-tests.ps1", RootDirectory);
             }
             else
             {
@@ -41,7 +43,7 @@ namespace ZhuaQianDesktopApp.Agent
                 report.TestResult = new AgentPlanStepResult();
             }
 
-            report.Finalize();
+            report.Complete();
             return report;
         }
 
@@ -73,7 +75,7 @@ namespace ZhuaQianDesktopApp.Agent
         public string Status = "pending";
         public string ReviewNotes = "";
 
-        public void Finalize()
+        public void Complete()
         {
             bool buildOk = BuildResult != null && BuildResult.Success;
             bool testOk = TestResult != null && TestResult.Success;

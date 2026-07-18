@@ -1,5 +1,5 @@
 ﻿ZhuaQian Desktop Verification
-Captured: 2026-07-17T00:35:52.9519454+08:00
+Captured: 2026-07-18T11:10:41.9711240+08:00
 Root: C:\Users\本机\Documents\Codex\2026-07-10\c-users-workbuddy-2026-07-10\src
 ExitCode: 0
 
@@ -20,11 +20,23 @@ ZhuaQian Desktop module tests
 [AgentPlanParser]
 [AgentPlanCommandMapper]
 [AgentPipeline]
+[AgentPipeline.Async]
 [StreamingBridge]
 [WebSearchClient]
+[WebPageReportBuilder]
 [ProcessSnapshotCollector]
 [SystemDiagnostics]
 [Smoke]
+[PluginManifest]
+[HookRegistry]
+[WorkspaceScanSummary]
+  [WorkspaceScanSummary] failures=0
+[CommandRunRecorder]
+  [CommandRunRecorder] failures=0
+[CodingAgentSession]
+  [CodingAgentSession] failures=0
+[OfficeTemplateLibrary]
+[OfficeTemplateExecutor]
 ================================
-Passed: 186  Failed: 0
+Passed: 219  Failed: 0
 ALL TESTS PASSED

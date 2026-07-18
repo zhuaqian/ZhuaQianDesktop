@@ -55,17 +55,24 @@
 
 ### 保留在根 docs/（核心文档）
 
+> 2026-07-18 归档：原列在此处的 `CODE_COMPLETION_ALIGNMENT.md`、`CURRENT_REALITY_2026-07-11.md`、`SLN_MIGRATION_PLAN.md`、`PERMISSION_UPGRADE_SCHEMA.md` 已并入 `docs/archive/coordination-2026-07/`（与另外 15 篇早期协调/进度文档一同）。当前根目录保留如下。
+
 | 文件 | 保留理由 |
 |------|---------|
 | `ARCHITECTURE_CHARTER.md` | 架构约束，贡献者必读 |
 | `PRODUCT_REQUIREMENTS.md` | 产品定位与范围 |
 | `PRODUCT_ARCHITECTURE.md` | 架构详细说明 |
-| `EXECUTION_BACKLOG.md` | 执行待办 |
-| `CODE_COMPLETION_ALIGNMENT.md` | 完成度事实基准 |
-| `CURRENT_REALITY_2026-07-11.md` | 当前状态快照 |
-| `SLN_MIGRATION_PLAN.md` | 迁移方案（新增） |
-| `PERMISSION_UPGRADE_SCHEMA.md` | 权限升级方案（新增） |
+| `PRODUCT_IMPLEMENTATION_DIRECTION_2026-07-16.md` | 实现方向与取舍 |
+| `DESKTOP_PROMPT_COLLABORATION_2026-07-17.md` | 桌面 Prompt 工作台协作设计 |
+| `PROJECT_HANDOFF_2026-07-16.md` | 项目交接说明 |
+| `EXECUTION_BACKLOG.md` | Epic A–F 执行待办与完成度（实时） |
+| `PLUGIN_ECOSYSTEM.md` | 插件契约与可信文件夹指引 |
+| `MCP_RESEARCH_SPIKE.md` | MCP 兼容性调研（当前未实现） |
+| `OPEN_SOURCE_MONITORING_BOUNDARY.md` | 开源监控边界 |
+| `FREE_OPEN_SOURCE_RELEASE_PLAN.md` | 免费开源发布计划 |
 | `PRE_OPENSOURCE_CHECKLIST.md` | 本文件 |
+| `INDEX.md` | 文档导航中枢 |
+| `_collab_board.md` / `_parallel_coordination_prompts.md` | 实时协作/协调协议（被并行会话持续改写） |
 
 ### 移入 docs/archive/
 

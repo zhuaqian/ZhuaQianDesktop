@@ -51,6 +51,7 @@ namespace ZhuaQianDesktopApp.Agent
             if (step.CommandType == "ExportFile") return BuildExportCommand(plan, step, options);
             if (step.CommandType == "ComputerControl") return BuildComputerCommand(step, options);
             if (step.CommandType == "WebSearch") return BuildWebSearchCommand(step, options);
+            if (step.CommandType == "BrowserFetch") return BuildBrowserFetchCommand(step, options);
             if (step.CommandType == "RunPlugin") return BuildPluginCommand(step, options);
             if (step.CommandType == "OrganizeFolder") return BuildOrganizeCommand(step, options);
             if (step.CommandType == "EndProcess") return BuildEndProcessCommand(step, options);
@@ -95,6 +96,15 @@ namespace ZhuaQianDesktopApp.Agent
             var args = BaseArgs(options);
             args["query"] = query;
             return new AgentCommand("WebSearch", "permNetworkUpload", options.TaskId, query, step.Title, args);
+        }
+
+        IAgentCommand BuildBrowserFetchCommand(AgentPlanStep step, AgentPlanCommandMapperOptions options)
+        {
+            string url = FirstNonEmpty(step.Target, StripLeadingVerb(step.Title, "fetch", "open", "browse", "read", "读取", "打开", "抓取", "浏览"));
+            if (string.IsNullOrWhiteSpace(url)) return null;
+            var args = BaseArgs(options);
+            args["url"] = url;
+            return new AgentCommand("BrowserFetch", "permNetworkUpload", options.TaskId, url, step.Title, args);
         }
 
         IAgentCommand BuildPluginCommand(AgentPlanStep step, AgentPlanCommandMapperOptions options)
@@ -240,13 +250,13 @@ namespace ZhuaQianDesktopApp.Agent
                 if (!string.IsNullOrWhiteSpace(value)) return value;
             return "";
         }
-    }
 
-    // Public wrapper so a runner can build a command for one step and keep
-    // its StepId for per-step state correlation. No change to existing Map logic.
-    public IAgentCommand BuildCommandForStep(AgentPlan plan, AgentPlanStep step, AgentPlanCommandMapperOptions options)
-    {
-        if (step == null) return null;
-        return BuildCommand(plan, step, options);
+        // Public wrapper so a runner can build a command for one step and keep
+        // its StepId for per-step state correlation. No change to existing Map logic.
+        public IAgentCommand BuildCommandForStep(AgentPlan plan, AgentPlanStep step, AgentPlanCommandMapperOptions options)
+        {
+            if (step == null) return null;
+            return BuildCommand(plan, step, options);
+        }
     }
 }

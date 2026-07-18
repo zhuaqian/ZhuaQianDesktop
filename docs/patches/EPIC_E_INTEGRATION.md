@@ -10,12 +10,25 @@ The Epic E source modules are written as net-new files:
 - `src/Agent/Hooks/IPluginHook.cs`
 - `src/Agent/Hooks/HookRegistry.cs`
 
-They are **not** yet part of the build because registering them requires editing
-`src/ZhuaQianDesktop.csproj`, `src/build.ps1`, and `src/tests/TestRunner.cs` —
-files currently owned by the in-flight refactor (main-form export extraction +
-`outputs/` regen). To coordinate, **do not apply this patch while that refactor is
-active.** Apply it after the other process's changes have landed and the build is
-green.
+> **2026-07-18 UPDATE — `PluginRegistry.cs` RETIRED.**
+> `src/Plugins/PluginRegistry.cs` was an orphaned, divergent *second* plugin system
+> (Tencent/Alibaba ecosystem targeting, `System.Text.Json` — an assembly the project
+> does not reference — and a reference to `PluginSandboxSettings`, a type defined
+> nowhere in `src/`). It was referenced by **zero** production files. When
+> `build.ps1`/`run-tests.ps1` were rewritten to dynamic enumeration (commit `a123ec5`),
+> they began compiling this broken orphan and **silently broke both build + test
+> compilation** (CS0246). It has been deleted (git-tracked → reversible) and removed
+> from `csproj`. The single, chosen plugin approach is now `PluginManifest`
+> (data/manifest contract, tested) + `HookRegistry` (observation seam, wired into
+> `AgentPipeline`).
+
+> **Build registration is now mostly automatic.** `build.ps1` and `run-tests.ps1`
+> use dynamic `Get-ChildItem` enumeration over `src/` (excluding `tests/` and the
+> three legacy dead files), so new modules under `src/` are compiled without manual
+> list edits. The **only** manual step still required is a `<Compile Include>` entry
+> in `src/ZhuaQianDesktop.csproj` for Visual Studio / `msbuild` consumers. The
+> "do not apply while refactor is active" caution below is historical — the refactor
+> has landed (HEAD `6d121eb`).
 
 Each step is idempotent in intent: only insert where the marker/anchor is present
 and the insertion is not already there.

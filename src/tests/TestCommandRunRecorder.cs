@@ -36,7 +36,35 @@ class TestCommandRunRecorder
         Assert(!missing.Success, "missing executable is reported as failed");
         Assert(missing.ExitCode == -1, "missing executable yields exit code -1");
 
+        string dir = Path.Combine(Path.GetTempPath(), "zq_guarded_" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        Directory.CreateDirectory(Path.Combine(dir, "src", "scripts"));
+        try
+        {
+            var guarded = new GuardedCommandRunRecorder(dir, null, new FakeInnerRecorder());
+            var allowed = guarded.Run("powershell", "-NoProfile -ExecutionPolicy Bypass -File .\\build.ps1", dir);
+            Assert(allowed.Success, "guarded recorder allows known project build script");
+
+            var denied = guarded.Run("cmd.exe", "/c echo nope", dir);
+            Assert(!denied.Success, "guarded recorder denies arbitrary command by default");
+            Assert(denied.ExitCode == -2, "guarded denial uses explicit exit code");
+        }
+        finally { try { Directory.Delete(dir, true); } catch { } }
+
         Console.WriteLine("  [CommandRunRecorder] failures=" + failures);
         return failures;
+    }
+
+    sealed class FakeInnerRecorder : ICommandRecorder
+    {
+        public AgentPlanStepResult Run(string fileName, string arguments, string workingDirectory = "")
+        {
+            var r = new AgentPlanStepResult();
+            r.Success = true;
+            r.ExitCode = 0;
+            r.OutputSummary = "fake guarded output";
+            r.StartedAt = DateTime.Now;
+            r.FinishedAt = DateTime.Now;
+            return r;
+        }
     }
 }

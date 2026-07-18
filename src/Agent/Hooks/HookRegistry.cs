@@ -24,7 +24,8 @@ namespace ZhuaQianDesktopApp.Agent.Hooks
         public void Register(IPluginHook hook)
         {
             if (hook == null) return;
-            if (!_hooks.TryGetValue(hook.Kind, out var list))
+            List<IPluginHook> list;
+            if (!_hooks.TryGetValue(hook.Kind, out list))
             {
                 list = new List<IPluginHook>();
                 _hooks[hook.Kind] = list;
@@ -34,13 +35,15 @@ namespace ZhuaQianDesktopApp.Agent.Hooks
 
         public IReadOnlyList<IPluginHook> Get(HookKind kind)
         {
-            if (_hooks.TryGetValue(kind, out var list)) return list.AsReadOnly();
+            List<IPluginHook> list;
+            if (_hooks.TryGetValue(kind, out list)) return list.AsReadOnly();
             return new List<IPluginHook>().AsReadOnly();
         }
 
         public int Count(HookKind kind)
         {
-            return _hooks.TryGetValue(kind, out var list) ? list.Count : 0;
+            List<IPluginHook> list;
+            return _hooks.TryGetValue(kind, out list) ? list.Count : 0;
         }
 
         // Run every hook for the kind. Synchronous and isolated: a throwing hook
@@ -48,14 +51,15 @@ namespace ZhuaQianDesktopApp.Agent.Hooks
         public void Run(HookKind kind, HookContext context)
         {
             if (context == null) return;
-            if (!_hooks.TryGetValue(kind, out var list)) return;
+            List<IPluginHook> list;
+            if (!_hooks.TryGetValue(kind, out list)) return;
             foreach (var hook in list)
             {
                 try { hook.Invoke(context); }
                 catch (Exception ex)
                 {
                     try { LastErrors.Add(new HookError { HookId = hook.Id ?? "", Kind = kind, Message = ex.Message }); }
-                    catch { }
+                    catch (Exception recordEx) { System.Diagnostics.Debug.WriteLine("HookRegistry record hook error: " + recordEx.Message); }
                 }
             }
         }

@@ -158,6 +158,13 @@ namespace ZhuaQianDesktopApp
                 return false;
             }
 
+            if (LooksLikeUrlAnalysisRequest(text, lower))
+            {
+                ExecuteUrlAnalysisReport(text);
+                input.Clear();
+                return true;
+            }
+
             if (LooksLikeEndProcessRequest(lower))
             {
                 int pid;
@@ -217,12 +224,131 @@ namespace ZhuaQianDesktopApp
                 return true;
             }
 
+            if (LooksLikeOfficeGenerateRequest(lower))
+            {
+                ExecuteOfficeGenerate(text);
+                input.Clear();
+                return true;
+            }
+
             return false;
         }
 
         bool LooksLikeEndProcessRequest(string lower)
         {
             return ContainsAny(lower, "结束进程", "終止處理程序", "结束 pid", "終止 pid", "kill pid", "end process", "terminate process");
+        }
+
+        bool LooksLikeUrlAnalysisRequest(string text, string lower)
+        {
+            List<string> urls = ExtractWebUrls(text);
+            if (urls.Count == 0) return false;
+            string withoutUrls = Regex.Replace(text ?? "", @"(?:https?://[^\s""'<>]+|www\.[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+(?::\d{1,5})?(?:/[^\s""'<>]*)?|[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)*\.(?:com|cn|net|org|io|ai|app|dev|top|shop|site|xyz|cc|co|info|biz|me|tv|edu|gov)(?::\d{1,5})?(?:/[^\s""'<>]*)?)", "", RegexOptions.IgnoreCase).Trim();
+            if (withoutUrls.Length == 0) return true;
+            return ContainsAny(lower,
+                "分析网址", "分析网站", "分析网页", "分析链接", "分析页面", "读取网址", "读取网站", "读取网页", "读取链接", "读一下", "抓取", "抓取网站", "抓取网页", "打开网页", "看一下", "总结网页", "总结网站", "总结链接", "提取网页", "整理网页", "生成报告", "生成分析报告", "分析报告",
+                "分析這個網址", "分析連結", "讀取網址", "讀取網站", "讀取網頁", "讀取連結", "總結網頁", "產生報告",
+                "analyze url", "analyze website", "analyze webpage", "analyze link", "read url", "read website", "read webpage", "read link", "fetch url", "fetch page", "fetch website", "open webpage", "summarize url", "summarize website", "summarize link", "generate report", "analysis report");
+        }
+
+        void ExecuteUrlAnalysisReport(string raw)
+        {
+            List<string> urls = ExtractWebUrls(raw);
+            if (urls.Count == 0)
+            {
+                AppendChat("Error", Tr("No URL found.", "没有找到网址。", "沒有找到網址。"), Color.FromArgb(190, 40, 40));
+                return;
+            }
+
+            if (!EnsurePermission(Tr("Fetch/analyze URL", "读取/分析网址", "讀取/分析網址"), permNetworkUpload, false, "URL Page Fetch"))
+                return;
+
+            AppendChat("You", "[Mode: " + ModeDisplayName(workMode) + "]\r\n" + raw, Color.FromArgb(30, 90, 180));
+            SetCurrentTaskStatus("running", "Fetching URL page text", false);
+
+            var pages = new List<WebPageFetchResult>();
+            var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string url in urls)
+            {
+                WebPageFetchResult page = Tools.WebResearchFetcher.FetchOne(url, 50000, browserRenderClient, true);
+                if (page != null && page.Success)
+                    page.Text = ApplyRedaction(page.Text ?? "");
+                pages.Add(page);
+                if (page != null && !string.IsNullOrWhiteSpace(page.Url)) seenUrls.Add(page.Url);
+            }
+
+            SetCurrentTaskStatus("running", "Searching related web sources", false);
+            string searchQuery = BuildUrlResearchSearchQuery(raw, pages, urls);
+            WebSearchResponse search = webSearchClient.SearchDetailed(searchQuery, 8);
+            if (search != null && search.Results != null)
+            {
+                foreach (WebSearchResult result in search.Results)
+                {
+                    if (result == null || string.IsNullOrWhiteSpace(result.Url)) continue;
+                    string cleanUrl = webSearchClient.CleanUrl(result.Url);
+                    if (seenUrls.Contains(cleanUrl)) continue;
+                    WebPageFetchResult page = Tools.WebResearchFetcher.FetchOne(cleanUrl, 40000, browserRenderClient, true);
+                    if (page != null && page.Success)
+                        page.Text = ApplyRedaction(page.Text ?? "");
+                    pages.Add(page);
+                    seenUrls.Add(cleanUrl);
+                    if (pages.Count >= 8) break;
+                }
+            }
+
+            string provider = search == null ? "" : search.Provider;
+            if (search != null && !search.Success && !string.IsNullOrWhiteSpace(search.ErrorMessage))
+                provider = provider + " failed: " + search.ErrorMessage;
+            WebPageAnalysisReport report = WebPageReportBuilder.Build(raw, pages, search == null ? null : search.Results, provider, searchQuery, DateTime.Now);
+            AppendChat("ZhuaQian", report.Markdown, Color.FromArgb(0, 130, 80));
+
+            int fetched = report.SuccessCount;
+            int failed = report.FailureCount;
+            LogAction("UrlAnalysis", "Fetched " + fetched.ToString() + " URL(s), failed " + failed.ToString() + ", search results " + report.SearchResultCount.ToString());
+            RecordAction("UrlAnalysis", failed == 0 ? "success" : (fetched > 0 ? "partial" : "failed"), "Fetched " + fetched.ToString() + " URL(s), failed " + failed.ToString() + ", search results " + report.SearchResultCount.ToString(), "");
+            SetCurrentTaskStatus(fetched > 0 ? "ready_for_review" : "failed", "URL analysis fetched " + fetched.ToString() + " page(s)", true);
+
+            string format = DetectExportFormat(raw);
+            if (string.IsNullOrWhiteSpace(format) && LooksLikeReportFileRequest(raw.ToLowerInvariant()))
+                format = "md";
+            if (!string.IsNullOrWhiteSpace(format))
+            {
+                lastExportNameHint = string.IsNullOrWhiteSpace(report.TitleHint) ? "网站分析报告" : report.TitleHint;
+                if (!SaveTextAsFormat(report.Markdown, format, true))
+                    AppendChat("Error", Tr("Report file generation failed. Use Save File to choose a path manually.", "报告文件生成失败。可用“保存文件”手动选择路径。", "報告檔案產生失敗。可用「儲存檔案」手動選擇路徑。"), Color.FromArgb(190, 40, 40));
+            }
+
+            SaveCurrentTask();
+        }
+
+        string BuildUrlResearchSearchQuery(string raw, IList<WebPageFetchResult> pages, IList<string> urls)
+        {
+            string query = Regex.Replace(raw ?? "", @"(?:https?://[^\s""'<>]+|www\.[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+(?::\d{1,5})?(?:/[^\s""'<>]*)?|[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)*\.(?:com|cn|net|org|io|ai|app|dev|top|shop|site|xyz|cc|co|info|biz|me|tv|edu|gov)(?::\d{1,5})?(?:/[^\s""'<>]*)?)", " ", RegexOptions.IgnoreCase);
+            query = Regex.Replace(query, @"\b(分析|读取|读一下|抓取|总结|生成|报告|网页|网站|链接|网址|深度|analyze|read|fetch|summarize|generate|report|url|website|webpage|link)\b", " ", RegexOptions.IgnoreCase);
+            query = Regex.Replace(query, @"\s+", " ").Trim();
+            if (query.Length < 4 && pages != null)
+            {
+                foreach (WebPageFetchResult page in pages)
+                {
+                    if (page != null && page.Success && !string.IsNullOrWhiteSpace(page.Title))
+                    {
+                        query = page.Title.Trim();
+                        break;
+                    }
+                }
+            }
+            if (query.Length < 4 && urls != null && urls.Count > 0)
+            {
+                try { query = new Uri(webSearchClient.CleanUrl(urls[0])).Host; }
+                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BuildUrlResearchSearchQuery: " + ex.Message); query = urls[0]; }
+            }
+            if (query.Length > 160) query = query.Substring(0, 160).Trim();
+            return query.Length == 0 ? "website analysis" : query;
+        }
+
+        bool LooksLikeReportFileRequest(string lower)
+        {
+            return ContainsAny(lower, "生成报告", "生成分析报告", "保存报告", "导出报告", "產生報告", "儲存報告", "匯出報告", "generate report", "save report", "export report");
         }
 
         bool LooksLikeComputerDiagnosisRequest(string lower)
@@ -248,6 +374,90 @@ namespace ZhuaQianDesktopApp
         bool LooksLikeOpenRequest(string lower)
         {
             return ContainsAny(lower, "打开", "開啟", "启动", "啟動", "open ", "launch ");
+        }
+
+        bool LooksLikeOfficeGenerateRequest(string lower)
+        {
+            return ContainsAny(lower,
+                "生成报告", "產生報告", "生成纪要", "產生紀要", "生成会议纪要", "生成會議紀要",
+                "生成演示", "產生簡報", "做演示", "做一份报告", "做一份報告", "写一份报告", "寫一份報告",
+                "写一份纪要", "寫一份紀要", "做海报", "做海報", "生成海报", "生成海報",
+                "生成表格", "產生表格", "生成 ppt", "生成 pptx", "生成 word", "生成 docx",
+                "生成 excel", "生成 xlsx", "生成文档", "生成文件", "產生文件",
+                "generate report", "generate a report", "create report", "make a report",
+                "generate presentation", "generate ppt", "generate pptx",
+                "generate poster", "make a poster", "generate spreadsheet",
+                "generate word", "generate docx", "generate excel", "generate xlsx",
+                "make a docx", "create a document");
+        }
+
+        void ExecuteOfficeGenerate(string raw)
+        {
+            using (var dlg = new Ui.OfficeGenerateDialog(raw, Tr, uiLanguage))
+            {
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                {
+                    input.Clear();
+                    return;
+                }
+
+                if (!EnsurePermission(
+                        Tr("Write/export files", "写入/导出文件", "寫入/匯出檔案"),
+                        permFileWrite,
+                        true,
+                        "Generate Office File"))
+                    return;
+
+                var parameters = new Dictionary<string, object>();
+                parameters["kind"] = dlg.ResultKind.ToString();
+                parameters["format"] = dlg.ResultFormat;
+                parameters["text"] = dlg.ResultText;
+                string target = dlg.ResultTarget;
+
+                var genGate = PermissionGate.FromJson(permGate.ToJson());
+                genGate.Set("permFileWrite", PermissionLevel.Ask);
+                var pipeline = agentPipelineFactory.Create(genGate, pluginDir, allowAdvancedPlugins);
+                pipeline.RequestApproval = approvalCommand => ShowApprovalCard(
+                    "OfficeTemplate",
+                    Tr("Confirm office file generation", "确认生成办公文件", "確認產生辦公檔案"),
+                    Tr("Generate", "生成", "產生"),
+                    Tr("Write/export files", "写入/导出文件", "寫入/匯出檔案"),
+                    target,
+                    Tr("This writes a file to your disk at the path you chose.",
+                       "这会把文件写入你选择的路径。",
+                       "這會把檔案寫入你選擇的路徑。"),
+                    Tr("Generate", "生成", "產生") + " " + dlg.ResultKind,
+                    "Kind: " + dlg.ResultKind + "\r\nTarget: " + target,
+                    target);
+
+                var genCommand = new AgentCommand("OfficeTemplate", "permFileWrite", currentTaskId, target,
+                    "Generate " + dlg.ResultKind + " -> " + target, parameters);
+                var result = pipeline.Run(genCommand);
+                if (result.Status == CommandStatus.Success)
+                {
+                    LogAction("OfficeTemplate", "Generated " + dlg.ResultKind + " -> " + target);
+                    RecordAction("OfficeTemplate", "success", "Generated " + dlg.ResultKind + " -> " + target, "");
+                    AppendChat("ZhuaQian",
+                        Tr("Generated ", "已生成 ", "已產生 ") + dlg.ResultKind + ": " + target,
+                        Color.FromArgb(0, 130, 80));
+                }
+                else if (result.Status == CommandStatus.Cancelled)
+                {
+                    RecordAction("OfficeTemplate", "cancelled", "Generate " + dlg.ResultKind, "");
+                }
+                else if (result.Status == CommandStatus.Denied)
+                {
+                    SetCurrentTaskStatus("needs_input", "Office file generation denied", true);
+                    RecordAction("OfficeTemplate", "denied", result.ErrorMessage, "");
+                    MessageBox.Show(this, result.ErrorMessage, "Office file generation denied");
+                }
+                else
+                {
+                    SetCurrentTaskStatus("failed", "Office file generation failed", true);
+                    RecordAction("OfficeTemplate", "failed", result.ErrorMessage, "");
+                    MessageBox.Show(this, result.ErrorMessage, "Office file generation failed");
+                }
+            }
         }
 
         bool ContainsAny(string value, params string[] needles)

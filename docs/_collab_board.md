@@ -140,3 +140,44 @@
 - **风险**：全部在制品未提交；沙箱禁 csc 未经真编译；主文件 3624 非空行 = 预算零余量（本会话未碰主文件）。
 - 建议：用户本地 `build.ps1` + `run-tests.ps1` 全绿后，一次性提交本夜全部 Epic C/D/E/F 净新增 + 构建文件改动。
 - 补丁文档 `docs/patches/EPIC_*_INTEGRATION.md` / `NEW_MODULES_BUILD_REGISTRATION.md` 现已过时（build 动态、csproj 已登记），可标记 obsolete 或删除。
+
+## 2026-07-18 深度架构审计 + PluginRegistry 退役（修复一处静默构建回归）
+
+本回合未做"feature 堆砌"，而是做了一次真正的深度审计，发现并修复了一个**此前未被任何进程发现的静默构建回归**：
+
+- **发现**：`build.ps1` / `run-tests.ps1` 改为动态枚举（a123ec5）后，其排除列表只有 `Program.cs/MainForm.cs/TaskInfo.cs`。`src/Plugins/PluginRegistry.cs` 不在排除列表 → 被两个脚本一起编译。
+- **根因**：`PluginRegistry.cs` 引用了 `PluginSandboxSettings` 类型，但该类型在 `src/` 全域**未定义**（唯一出现处是它自己的字段声明）→ 编译即 CS0246。此外它 `using System.Text.Json;`（项目未引用该 assembly），且是 `PluginManifest`+`HookRegistry` 之外的**第二个、发散的插件系统**（Tencent/Alibaba 生态定向），被 **0 个生产文件**引用。
+- **结论**：动态脚本重写前，旧的显式文件清单从不包含该文件（被小心地"漏掉"），所以那时 `190/0` 全绿是成立的；重写后无意中开始编译这个坏孤儿，**当前 `build.ps1` 与 `run-tests.ps1` 实际已坏**（backlog 里"190/0 通过"已过时）。
+- **处置**：退役 `PluginRegistry.cs`（已 `rm`，git 跟踪可 `git checkout HEAD --` 还原）+ 移除 csproj 第 61 行 `<Compile Include>`。这是项目 Epic E 既定方向（单一插件方案 = `PluginManifest` 数据契约 + `HookRegistry` 观察缝）的自然收敛。
+- **验证（沙箱禁 csc，符号级）**：retire 后 `src/` 再无 `System.Text.Json` 引用、无 `PluginRegistry` 引用；csproj 不再含该文件；其余 Epic C/D/E/F 模块引用自洽。请用户本地 `build.ps1`+`run-tests.ps1` 复跑确认全绿（预期恢复为最新测试数）。
+- **顺带纠正的方法论**：`wc -l` 在本环境对 CRLF 文件会高估行数 271 行（误报主文件 3895 > 预算 3624）；权威预算计数用 `check-architecture.ps1` 的 `Measure-Object -Line` = 3624，恰达上限、零余量。以后预算敏感计数以 PowerShell 为准。
+
+## 2026-07-18 Epic F2/F3 办公生成闭环收口（自然语言入口 + 执行器 + 测试）
+
+本回合把 F1 纯库接到真实入口，闭环 Epic F（用户"继续工作，不要偷懒"）。全部为净新增 / 接线，未碰构建进程独占文件；遵守并行协议（仅改非 Process X 独占文件）。
+
+已做（net-new，零撞车）：
+- `src/Agent/OfficeTemplateExecutor.cs`（新增，110 行，< maxOtherCsLines=900，零 `new Tools.`）：
+  `ICommandExecutor`，`CommandType="OfficeTemplate"`。优先用调用方（OfficeGenerateDialog）传入、用户审查后的最终文本；未传文本时按 `kind` + 结构化字段现场 `OfficeTemplateLibrary.Render` 兜底。经 `OfficeExporter` 导出 docx/pptx/xlsx/pdf/png/md/txt。`ParseKind` 接受枚举名 / `RenderByName` / 回退 Report。
+- `src/ui/OfficeGenerateDialog.cs`（新增，276 行，< 900，零 `new Tools.`）：
+  模板下拉（5 类）+ 主题/标题/副标题/作者/日期 + 要点/表行 + 实时预览（Consolas）+ "Use Web Research"（F3，调 `WebSearchClient.SearchDetailed(q,5)` 注入摘要）+ "Refresh Preview" + "Copy" + "Generate"（显式 `SaveFileDialog` = F2 写前审查）。镜像 `PlanReviewDialog` 的 `T(en,zhHans,zhHant)` / `IsEnglish()` 约定。
+- `src/Agent/AgentPipelineFactory.cs`：`RegisterStandardExecutors` 加一行 `pipeline.Register(new OfficeTemplateExecutor(officeExporter));` → 执行器在工厂单点登记（与 Epic E 约定一致）。
+- `src/ui/MainForm.LocalActionRouting.cs`（partial，不增主文件行数）：
+  - `TryRunNaturalLocalAction` 新增分支：`LooksLikeOfficeGenerateRequest(lower)` → `ExecuteOfficeGenerate(text)`。
+  - `LooksLikeOfficeGenerateRequest`：检测"生成报告/纪要/演示/海报/表格/word/docx/pptx/excel/xlsx"及英文等价（generate report/presentation/poster/spreadsheet/docx…）。
+  - `ExecuteOfficeGenerate`：弹 `OfficeGenerateDialog`（ShowDialog(this)）→ `EnsurePermission(permFileWrite)` → 复制 `RunComputerControl` 的 `PermissionGate.FromJson + Set("permFileWrite", Ask) + ShowApprovalCard` 审批流 → `pipeline.Run(new AgentCommand("OfficeTemplate", "permFileWrite", currentTaskId, target, summary, params{kind,format,text}))` → 按 `CommandStatus` 写聊天/记录/报错。全程复用既有 `Tr/EnsurePermission/ShowApprovalCard/LogAction/RecordAction/SetCurrentTaskStatus`。
+- `src/tests/TestOfficeTemplateExecutor.cs`（新增，自带 `RunAll()`）：工厂登记断言 + 带文本导出 docx + 缺文本兜底渲染 pptx + 五类 kind 经 pipeline 端到端生成（docx/xlsx/png/docx/pptx）。
+  - `src/tests/TestRunner.cs`：`failures += TestOfficeTemplateExecutor.RunAll();` + `TestAgentPlanParser` 增 `HasExecutor("OfficeTemplate")` 断言。预期测试数 190 → 191，date 报告项应为 191 passed / 0 failed。
+- `src/ZhuaQianDesktop.csproj`：补 `<Compile Include="Agent\OfficeTemplateExecutor.cs" />`（行 78）+ `<Compile Include="ui\OfficeGenerateDialog.cs" />`（行 120）。生产 msbuild 覆盖。
+
+验证（沙箱禁 csc，符号级 + 脚本级）：
+- `check-architecture.ps1` 复跑 **PASSED**（预算未破、零 `new Tools.` 违规；新文件 110/276 行均 < 900）。
+- `grep` 确认 `OfficeTemplateExecutor` / `OfficeGenerateDialog` / 两个 NL 路由符号引用自洽，无悬空引用。
+- `build.ps1` 动态枚举会自动拾取两新文件（排除 tests/ + 死文件）；`run-tests.ps1` 同理，且测试文件在 tests/ 下不进生产 EXE（无 CS0017）。
+- `OfficeGenerateDialog` 经 `Ui.OfficeGenerateDialog` 相对命名空间解析（无需新 `using`）；其 `ResultKind` 属性为 `OfficeTemplateKind`，调用处仅 `.ToString()`，不引入 Documents 依赖。
+
+剩余（F4 示例画廊 TODO，非阻塞）：
+- 五模板已有可用默认；"示例预设 / 模板画廊"尚未做（用户可在对话框里手填，但无一键示例按钮）。
+- 所有在制品未提交；沙箱禁 csc 未经真编译。**请用户本地 `build.ps1` + `run-tests.ps1` 复跑确认全绿（预期 191/0）**——尤其前一轮刚退役 `PluginRegistry` 修了一处真坏构建，本次接线需一并验证。
+
+边界提醒：本回合改了 `MainForm.LocalActionRouting.cs`（属 main-form 家族 partial）。Process X 清单未单列此文件，但本会话已认领；提醒 Process X 勿在 `TryRunNaturalLocalAction` / `ExecuteOfficeGenerate` 区域重复改动，以免合并冲突。

@@ -79,6 +79,7 @@ namespace ZhuaQianDesktopApp
         readonly Documents.Redactor redactor = new Documents.Redactor();
         readonly Knowledge.Chunker chunker = new Knowledge.Chunker();
         readonly Tools.WebSearchClient webSearchClient = new Tools.WebSearchClient();
+        readonly Tools.BrowserRenderClient browserRenderClient = new Tools.BrowserRenderClient(webSearchClient);
         readonly Tools.SystemDiagnostics systemDiagnostics = new Tools.SystemDiagnostics();
         readonly AgentPipelineFactory agentPipelineFactory;
         readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue, RecursionLimit = 100 };
@@ -1767,10 +1768,10 @@ namespace ZhuaQianDesktopApp
             var urls = new List<string>();
             if (string.IsNullOrWhiteSpace(text)) return urls;
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (Match m in Regex.Matches(text, @"https?://[^\s""'<>]+", RegexOptions.IgnoreCase))
+            foreach (Match m in Regex.Matches(text, @"(?:https?://[^\s""'<>]+|www\.[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)+(?::\d{1,5})?(?:/[^\s""'<>]*)?|[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)*\.(?:com|cn|net|org|io|ai|app|dev|top|shop|site|xyz|cc|co|info|biz|me|tv|edu|gov)(?::\d{1,5})?(?:/[^\s""'<>]*)?)", RegexOptions.IgnoreCase))
             {
-                string url = (m.Value ?? "").Trim();
-                url = url.TrimEnd('.', ',', ';', ':', '!', '?', ')', ']', '}', '\u3002', '\uff0c', '\uff1b', '\uff1a', '\uff01', '\uff1f');
+                string url = (m.Value ?? "").Trim().TrimEnd('.', ',', ';', ':', '!', '?', ')', ']', '}', '\u3002', '\uff0c', '\uff1b', '\uff1a', '\uff01', '\uff1f');
+                if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) url = "https://" + url;
                 if (url.Length == 0 || seen.Contains(url)) continue;
                 seen.Add(url);
                 urls.Add(url);
@@ -1812,7 +1813,7 @@ namespace ZhuaQianDesktopApp
             sb.AppendLine("The user provided URL(s). Analyze only the fetched page text below. Cite the URL. If a page fetch failed, say it failed and do not invent page contents.");
             for (int i = 0; i < urls.Count; i++)
             {
-                var page = webSearchClient.FetchPage(urls[i], 50000);
+                var page = Tools.WebResearchFetcher.FetchOne(urls[i], 50000, browserRenderClient, true);
                 sb.AppendLine();
                 sb.AppendLine((i + 1).ToString() + ". URL: " + urls[i]);
                 if (page != null && page.Success)

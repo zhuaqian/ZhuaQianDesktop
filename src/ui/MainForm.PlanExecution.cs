@@ -98,10 +98,10 @@ namespace ZhuaQianDesktopApp
             // only a read-only scan. (Full build/test review = separate action.)
             try
             {
-                var review = new CodingAgentSession();
-                review.RootDirectory = configDir;
-                review.Recorder = null;
-                var reviewReport = review.Run(plan);
+                var codingReview = new CodingAgentSession();
+                codingReview.RootDirectory = configDir;
+                codingReview.RunBuildAndTest = false;
+                var reviewReport = codingReview.Run(plan);
                 AppendChat("ZhuaQian", Tr("Plan review:", "计划审查：", "計畫審查：") + "\r\n" + reviewReport.ToMarkdown(), Color.FromArgb(0, 90, 140));
             }
             catch (Exception) { /* review is best-effort, never block the execution result */ }

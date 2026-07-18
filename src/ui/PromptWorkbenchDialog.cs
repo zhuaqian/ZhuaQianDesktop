@@ -14,6 +14,8 @@ namespace ZhuaQianDesktopApp.Ui
         readonly PermissionGate permissionGate;
         readonly AuditLog auditLog;
         readonly IEnumerable<string> attachmentLabels;
+        readonly Func<string, string, string, string> tr;
+        readonly string languageCode;
 
         ComboBox assemblyCombo;
         ListBox memoryList;
@@ -27,14 +29,16 @@ namespace ZhuaQianDesktopApp.Ui
 
         public string AssembledPrompt { get; private set; }
 
-        public PromptWorkbenchDialog(string configDir, PermissionGate permissionGate, string auditLogPath, string initialTask, IEnumerable<string> attachmentLabels)
+        public PromptWorkbenchDialog(string configDir, PermissionGate permissionGate, string auditLogPath, string initialTask, IEnumerable<string> attachmentLabels, Func<string, string, string, string> translator = null, string languageCode = "zh-Hans")
         {
             this.promptLibrary = new PromptLibrary(configDir);
             this.permissionGate = permissionGate ?? new PermissionGate();
             this.auditLog = new AuditLog(auditLogPath);
             this.attachmentLabels = attachmentLabels ?? new List<string>();
+            this.tr = translator ?? ((en, zh, zht) => en);
+            this.languageCode = languageCode ?? "en";
 
-            Text = "ZhuaQian Prompt Workbench";
+            Text = T("ZhuaQian Prompt Workbench", "抓钱 Prompt 工作台", "抓錢 Prompt 工作台");
             StartPosition = FormStartPosition.CenterParent;
             Size = new Size(980, 680);
             MinimumSize = new Size(860, 560);
@@ -53,60 +57,60 @@ namespace ZhuaQianDesktopApp.Ui
             Controls.Add(right);
             Controls.Add(left);
 
-            var title = new Label { Text = "Prompt Registry / Assembly", Left = 12, Top = 12, Width = 260, Height = 22, Font = new Font(Font, FontStyle.Bold) };
+            var title = new Label { Text = T("Prompt Registry / Assembly", "提示词库 / 组装", "提示詞庫 / 組裝"), Left = 12, Top = 12, Width = 260, Height = 22, Font = new Font(Font, FontStyle.Bold) };
             left.Controls.Add(title);
 
-            left.Controls.Add(new Label { Text = "Assembly", Left = 12, Top = 48, Width = 260, Height = 18 });
+            left.Controls.Add(new Label { Text = T("Assembly", "组装方案", "組裝方案"), Left = 12, Top = 48, Width = 260, Height = 18 });
             assemblyCombo = new ComboBox { Left = 12, Top = 68, Width = 260, DropDownStyle = ComboBoxStyle.DropDownList };
             left.Controls.Add(assemblyCombo);
 
-            left.Controls.Add(new Label { Text = "Memory", Left = 12, Top = 104, Width = 260, Height = 18 });
+            left.Controls.Add(new Label { Text = T("Memory", "记忆", "記憶"), Left = 12, Top = 104, Width = 260, Height = 18 });
             memoryList = new ListBox { Left = 12, Top = 124, Width = 260, Height = 96, SelectionMode = SelectionMode.MultiExtended };
             left.Controls.Add(memoryList);
 
-            left.Controls.Add(new Label { Text = "Memory name", Left = 12, Top = 238, Width = 260, Height = 18 });
+            left.Controls.Add(new Label { Text = T("Memory name", "记忆名称", "記憶名稱"), Left = 12, Top = 238, Width = 260, Height = 18 });
             memoryNameBox = new TextBox { Left = 12, Top = 258, Width = 260, Text = "writing-style" };
             left.Controls.Add(memoryNameBox);
 
-            left.Controls.Add(new Label { Text = "Memory content", Left = 12, Top = 290, Width = 260, Height = 18 });
+            left.Controls.Add(new Label { Text = T("Memory content", "记忆内容", "記憶內容"), Left = 12, Top = 290, Width = 260, Height = 18 });
             memoryContentBox = new TextBox { Left = 12, Top = 310, Width = 260, Height = 72, Multiline = true, ScrollBars = ScrollBars.Vertical };
             left.Controls.Add(memoryContentBox);
 
-            var saveMemory = new Button { Text = "Save Memory", Left = 12, Top = 390, Width = 125, Height = 30 };
+            var saveMemory = new Button { Text = T("Save Memory", "保存记忆", "儲存記憶"), Left = 12, Top = 390, Width = 125, Height = 30 };
             saveMemory.Click += (s, e) => SaveMemory();
             left.Controls.Add(saveMemory);
 
-            var refreshMemory = new Button { Text = "Refresh", Left = 147, Top = 390, Width = 125, Height = 30 };
+            var refreshMemory = new Button { Text = T("Refresh", "刷新", "重新整理"), Left = 147, Top = 390, Width = 125, Height = 30 };
             refreshMemory.Click += (s, e) => LoadMemories();
             left.Controls.Add(refreshMemory);
 
-            left.Controls.Add(new Label { Text = "Permission action", Left = 12, Top = 438, Width = 260, Height = 18 });
+            left.Controls.Add(new Label { Text = T("Permission action", "权限动作", "權限動作"), Left = 12, Top = 438, Width = 260, Height = 18 });
             permissionActionBox = new TextBox { Left = 12, Top = 458, Width = 260, Text = "upload attached file" };
             left.Controls.Add(permissionActionBox);
 
-            var checkPermission = new Button { Text = "Check Permission", Left = 12, Top = 490, Width = 160, Height = 30 };
+            var checkPermission = new Button { Text = T("Check Permission", "检查权限", "檢查權限"), Left = 12, Top = 490, Width = 160, Height = 30 };
             checkPermission.Click += (s, e) => CheckPermission();
             left.Controls.Add(checkPermission);
 
-            permissionResultLabel = new Label { Text = "Decision: -", Left = 12, Top = 528, Width = 260, Height = 52, ForeColor = Color.FromArgb(80, 80, 80) };
+            permissionResultLabel = new Label { Text = T("Decision: -", "决策：-", "決策：-"), Left = 12, Top = 528, Width = 260, Height = 52, ForeColor = Color.FromArgb(80, 80, 80) };
             left.Controls.Add(permissionResultLabel);
 
-            var close = new Button { Text = "Close", Left = 182, Top = 592, Width = 90, Height = 32, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
+            var close = new Button { Text = T("Close", "关闭", "關閉"), Left = 182, Top = 592, Width = 90, Height = 32, Anchor = AnchorStyles.Bottom | AnchorStyles.Left };
             close.Click += (s, e) => Close();
             left.Controls.Add(close);
 
-            var taskLabel = new Label { Text = "Task / user instruction", Dock = DockStyle.Top, Height = 20, Font = new Font(Font, FontStyle.Bold) };
+            var taskLabel = new Label { Text = T("Task / user instruction", "任务 / 用户指令", "任務 / 使用者指令"), Dock = DockStyle.Top, Height = 20, Font = new Font(Font, FontStyle.Bold) };
             right.Controls.Add(taskLabel);
 
             taskBox = new TextBox { Dock = DockStyle.Top, Height = 90, Multiline = true, ScrollBars = ScrollBars.Vertical, Text = initialTask };
             right.Controls.Add(taskBox);
 
             var actionPanel = new Panel { Dock = DockStyle.Top, Height = 42 };
-            var assemble = new Button { Text = "Assemble Prompt", Left = 0, Top = 7, Width = 140, Height = 30 };
+            var assemble = new Button { Text = T("Assemble Prompt", "组装提示词", "組裝提示詞"), Left = 0, Top = 7, Width = 140, Height = 30 };
             assemble.Click += (s, e) => AssemblePrompt();
-            var insert = new Button { Text = "Insert To Chat", Left = 150, Top = 7, Width = 130, Height = 30 };
+            var insert = new Button { Text = T("Insert To Chat", "插入对话", "插入對話"), Left = 150, Top = 7, Width = 130, Height = 30 };
             insert.Click += (s, e) => { if (string.IsNullOrWhiteSpace(AssembledPrompt)) AssemblePrompt(); DialogResult = DialogResult.OK; Close(); };
-            var copy = new Button { Text = "Copy", Left = 290, Top = 7, Width = 80, Height = 30 };
+            var copy = new Button { Text = T("Copy", "复制", "複製"), Left = 290, Top = 7, Width = 80, Height = 30 };
             copy.Click += (s, e) => { if (!string.IsNullOrEmpty(outputBox.Text)) Clipboard.SetText(outputBox.Text); };
             actionPanel.Controls.Add(assemble);
             actionPanel.Controls.Add(insert);
@@ -119,6 +123,11 @@ namespace ZhuaQianDesktopApp.Ui
             split.Panel1.Controls.Add(outputBox);
             split.Panel2.Controls.Add(auditBox);
             right.Controls.Add(split);
+        }
+
+        string T(string en, string zh, string zht)
+        {
+            return tr(en, zh, zht);
         }
 
         void LoadAssemblies()

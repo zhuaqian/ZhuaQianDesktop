@@ -31,12 +31,14 @@ namespace ZhuaQianDesktopApp.Agent
         public void RegisterStandardExecutors(AgentPipeline pipeline, string pluginDir, bool allowAdvancedPlugins)
         {
             pipeline.Register(new ExportFileExecutor(officeExporter));
+            pipeline.Register(new OfficeTemplateExecutor(officeExporter));
             pipeline.Register(new OrganizeFolderExecutor(configDir));
             pipeline.Register(new PluginRunExecutor(pluginDir, allowAdvancedPlugins, 30000, 20000, System.IO.Path.Combine(configDir, "plugin-output")));
             pipeline.Register(new ProcessManageExecutor());
             pipeline.Register(new ComputerControlExecutor());
             pipeline.Register(new RollbackExecutor(configDir));
             pipeline.Register(new WebSearchExecutor(webSearchClient));
+            pipeline.Register(new BrowserFetchExecutor(new BrowserRenderClient(webSearchClient)));
         }
     }
 }

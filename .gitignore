@@ -3,6 +3,7 @@
 /bin/
 /obj/
 /generated/
+/build/
 
 # Generated release packages — regenerate from src/, do not commit
 /outputs/

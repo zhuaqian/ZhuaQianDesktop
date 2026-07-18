@@ -39,6 +39,12 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Security" />
     <Reference Include="System.Web.Extensions" />
+    <!-- First external NuGet dependency: headless Chromium for JS-rendered / login-gated pages.
+         See docs/patches/BROWSER_RENDER_INTEGRATION.md. Adjust HintPath TFM if the installed
+         package ships lib/net48 instead of lib/netstandard2.0. -->
+    <Reference Include="Microsoft.Playwright">
+      <HintPath>..\packages\Microsoft.Playwright.1.48.0\lib\netstandard2.0\Microsoft.Playwright.dll</HintPath>
+    </Reference>
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -58,7 +64,6 @@
     <Compile Include="Documents\OfficeTemplateLibrary.cs" />
     <Compile Include="Knowledge\Chunker.cs" />
     <Compile Include="Knowledge\VectorIndex.cs" />
-    <Compile Include="Plugins\PluginRegistry.cs" />
     <Compile Include="Plugins\PluginManifest.cs" />
     <Compile Include="Agent\Hooks\HookKind.cs" />
     <Compile Include="Agent\Hooks\HookContext.cs" />
@@ -75,7 +80,10 @@
     <Compile Include="Agent\CommandResult.cs" />
     <Compile Include="Agent\AgentPipeline.cs" />
     <Compile Include="Agent\AgentPipelineFactory.cs" />
+    <Compile Include="Agent\BrowserFetchExecutor.cs" />
+    <Compile Include="Agent\Coding\ProjectAnalyzer.cs" />
     <Compile Include="Agent\ExportFileExecutor.cs" />
+    <Compile Include="Agent\OfficeTemplateExecutor.cs" />
     <Compile Include="Agent\OrganizeFolderExecutor.cs" />
     <Compile Include="Agent\PluginRunExecutor.cs" />
     <Compile Include="Agent\ProcessManageExecutor.cs" />
@@ -95,6 +103,9 @@
     <Compile Include="Tools\TimelineControl.cs" />
     <Compile Include="Tools\UndoRedoManager.cs" />
     <Compile Include="Tools\WebSearchClient.cs" />
+    <Compile Include="Tools\BrowserRenderClient.cs" />
+    <Compile Include="Tools\WebResearchFetcher.cs" />
+    <Compile Include="Tools\WebPageReportBuilder.cs" />
     <Compile Include="Tools\SystemDiagnostics.cs" />
     <Compile Include="providers\AlibabaQianwenClient.cs" />
     <Compile Include="providers\GeminiClient.cs" />
@@ -117,6 +128,7 @@
     <Compile Include="ui\MainForm.PlanReview.cs" />
     <Compile Include="ui\MainForm.PromptWorkbench.cs" />
     <Compile Include="ui\PlanReviewDialog.cs" />
+    <Compile Include="ui\OfficeGenerateDialog.cs" />
     <Compile Include="ui\CodingAgentReportDialog.cs" />
     <Compile Include="ui\MainForm.CodingAgentReview.cs" />
     <Compile Include="ui\PromptWorkbenchDialog.cs" />

@@ -29,13 +29,18 @@ Implemented in the current preview:
 
 Partly implemented:
 
-- Agent workflow. The first `Plan -> Approval -> Execute -> Output/Review` vertical slice exists through `AgentPlanCommandMapper`, `PlanReviewDialog`, and `AgentPipeline`; it is not yet a full persistent state machine.
+- Agent workflow. A persistent per-step state machine now backs the `Plan -> Approval -> Execute -> Output/Review` loop (`AgentPlanState` + `AgentPlanRunner`, surfaced via `PlanReviewDialog` and `AgentPlanCommandMapper`); `AgentPipeline` runs steps asynchronously and awaits each step's completion.
 - Local activity monitoring. `ProcessSnapshotCollector`, `monitoring-events.jsonl`, `monitoring-cases.jsonl`, and a manual review panel exist, but there is no continuous background monitor, endpoint-security engine, or automated enforcement loop.
 - UI modularity. Helper modules exist, but `src/ZhuaQianDesktop.cs` is still the main integration file.
 
 Not implemented yet:
 
-- MCP integration, signed plugin ecosystem, full UI automation tests, enterprise endpoint security, and kernel-level monitoring.
+- MCP client integration (research only — see `docs/MCP_RESEARCH_SPIKE.md`)
+- Runtime-enforced signed plugin trust (manifest + trust-folder guidance exists in `docs/PLUGIN_ECOSYSTEM.md`, not yet enforced at load time)
+- Full UI automation test suite and a standard test framework (currently a custom `TestRunner`)
+- Enterprise endpoint-security features, kernel-level monitoring, and anti-cheat drivers
+
+> Open source: by project decision, the public GitHub repository is published only after all remaining work is finished and a clean build/test pass plus a security review are done. See `docs/FREE_OPEN_SOURCE_RELEASE_PLAN.md`.
 
 > Note: a PowerShell-based installer (`installer/Install.ps1`) now ships with the repo and installs the CI-built `dist/ZhuaQianDesktop.exe` to Program Files with SHA-256 verification, shortcuts, and an uninstall entry. The local workspace already has a clean linear 9-commit history; publish from a clean clone if you want a pristine public history.
 
@@ -43,13 +48,13 @@ Not implemented yet:
 
 This is a v0.1 prototype, not a polished commercial office-automation product.
 
-Verified on 2026-07-17 in this workspace:
+Verified on 2026-07-18 in this workspace:
 
 - `build.ps1`: passed, generated `dist/ZhuaQianDesktop.exe`
-- `src/scripts/run-tests.ps1`: passed, `186` passed / `0` failed
-- `work/zq-desktop/scripts/run-tests.ps1`: passed, `186` passed / `0` failed
-- `work/zq-desktop/scripts/smoke-test.ps1`: passed
+- `src/scripts/run-tests.ps1`: passed, `219` passed / `0` failed
 - Architecture and package checks: passed
+
+The transitional `work/zq-desktop/` mirror has been retired and is no longer a build/test source.
 
 The local workspace Git repository is usable (linear history, see `git log`). For a pristine public history, publish from a clean clone.
 
@@ -110,20 +115,20 @@ Uninstall with `installer/Uninstall.ps1` (also elevated) or via Programs and Fea
 
 - **Local builds are dev-only.** `build.ps1` produces `dist/ZhuaQianDesktop.exe`; the accompanying SHA256 sidecar is written next to it. Treat any local zip you make as `*local-dev*` and never publish it as an official release.
 - **Official release artifacts are produced by CI only.** On a pushed tag, `.github/workflows/tests.yml` builds, runs the test suite, and uploads `ZhuaQianDesktop-<tag>.zip` as a Release artifact. The root `.git` metadata in this workspace is usable; publish from a clean clone or this repository.
+- **External review snapshots come from git only.** Use `scripts/export-review-snapshot.ps1`, which wraps `git archive HEAD` and writes a SHA-256 sidecar. Do not manually zip the full workspace for review.
 
 ## Read First
 
+- [Docs Index](docs/INDEX.md) — 所有文档的导航中枢
 - [Architecture Charter](docs/ARCHITECTURE_CHARTER.md)
 - [Project Handoff](docs/PROJECT_HANDOFF_2026-07-16.md)
 - [Product Implementation Direction](docs/PRODUCT_IMPLEMENTATION_DIRECTION_2026-07-16.md)
 - [Desktop Prompt Collaboration](docs/DESKTOP_PROMPT_COLLABORATION_2026-07-17.md)
 - [Product Requirements](docs/PRODUCT_REQUIREMENTS.md)
 - [Product Architecture](docs/PRODUCT_ARCHITECTURE.md)
-- [Current Reality](docs/CURRENT_REALITY_2026-07-11.md)
-- [Code Completion Alignment](docs/CODE_COMPLETION_ALIGNMENT.md)
 - [Open Source Monitoring Boundary](docs/OPEN_SOURCE_MONITORING_BOUNDARY.md)
-- [Open Source Readiness Review](docs/OPEN_SOURCE_READINESS_REVIEW_2026-07-12.md)
 - [Free Open Source Release Plan](docs/FREE_OPEN_SOURCE_RELEASE_PLAN.md)
+- [Release Trust Pipeline](docs/RELEASE_TRUST_PIPELINE.md)
 
 ## License
 

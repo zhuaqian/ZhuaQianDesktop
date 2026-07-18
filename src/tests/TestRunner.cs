@@ -44,6 +44,7 @@ class TestRunner
         TestAgentPipelineAsync();
         TestStreamingBridge();
         TestWebSearchClient();
+        TestWebPageReportBuilder();
         TestProcessSnapshotCollector();
         TestSystemDiagnostics();
         TestSmoke();
@@ -53,6 +54,8 @@ class TestRunner
         failures += TestCommandRunRecorder.RunAll();
         failures += TestCodingAgentSession.RunAll();
         failures += TestOfficeTemplateLibrary.RunAll();
+        failures += TestOfficeTemplateExecutor.RunAll();
+        failures += TestBrowserRenderClient.RunAll();
 
         Console.WriteLine("================================");
         Console.WriteLine("Passed: " + passed + "  Failed: " + failures);
@@ -448,6 +451,7 @@ class TestRunner
         Assert(pipeline.HasExecutor("ComputerControl"), "factory registers computer control executor");
         Assert(pipeline.HasExecutor("RollbackFiles"), "factory registers rollback executor");
         Assert(pipeline.HasExecutor("WebSearch"), "factory registers web search executor");
+        Assert(pipeline.HasExecutor("OfficeTemplate"), "factory registers office template executor");
         foreach (var step in plan.Steps)
             if (!string.IsNullOrWhiteSpace(step.CommandType))
                 Assert(pipeline.HasExecutor(step.CommandType), "plan command has registered executor: " + step.CommandType);
@@ -681,11 +685,47 @@ class TestRunner
         Assert(!emptySearch.Success && emptySearch.ErrorMessage.Contains("empty"), "detailed empty search explains failure");
         var bad = client.FetchPage("not-a-url", 1000);
         Assert(bad != null && !bad.Success && bad.ErrorMessage.Contains("Invalid URL"), "invalid URL fails without hallucinated page");
+        Assert(client.CleanUrl("example.com/path") == "https://example.com/path", "bare domain is normalized to https URL");
+        Assert(client.CleanUrl("report.xlsx") == "report.xlsx", "office file name is not normalized as URL");
         string error;
         Assert(!client.ValidatePublicHttpUrl("http://localhost/", out error), "localhost URL blocked");
         Assert(!client.ValidatePublicHttpUrl("http://127.0.0.1/", out error), "loopback URL blocked");
         Assert(!client.ValidatePublicHttpUrl("http://169.254.169.254/latest/meta-data/", out error), "metadata URL blocked");
         Assert(!client.ValidatePublicHttpUrl("https://example.com:8443/", out error), "non-web port blocked");
+    }
+
+    static void TestWebPageReportBuilder()
+    {
+        Console.WriteLine("[WebPageReportBuilder]");
+        var pages = new List<WebPageFetchResult>();
+        pages.Add(new WebPageFetchResult
+        {
+            Success = true,
+            Url = "https://example.com/product",
+            Title = "Example Product",
+            Text = "Example Product is a web service.\nPricing starts today.\nFeatures include reports, exports, and collaboration.\nContact sales for enterprise terms."
+        });
+        pages.Add(new WebPageFetchResult
+        {
+            Success = false,
+            Url = "https://example.com/private",
+            ErrorMessage = "Forbidden"
+        });
+        var searchResults = new List<WebSearchResult>();
+        searchResults.Add(new WebSearchResult { Title = "Example Product Pricing", Url = "https://example.com/pricing", Snippet = "Pricing and release notes for Example Product." });
+        searchResults.Add(new WebSearchResult { Title = "Example Product Docs", Url = "https://example.com/docs", Snippet = "Features, exports, reports, and collaboration docs." });
+        var report = WebPageReportBuilder.Build("分析这个网址并生成深度分析报告", pages, searchResults, "Bing RSS", "Example Product", new DateTime(2026, 7, 18, 10, 0, 0));
+        Assert(report.SuccessCount == 1, "successful fetch counted");
+        Assert(report.FailureCount == 1, "failed fetch counted");
+        Assert(report.SearchResultCount == 2, "search results counted");
+        Assert(report.Markdown.Contains("网站深度分析报告"), "deep report title shown");
+        Assert(report.Markdown.Contains("搜索引擎返回的候选来源"), "search source section shown");
+        Assert(report.Markdown.Contains("多来源分析"), "cross-source analysis section shown");
+        Assert(report.Markdown.Contains("抓取状态: 成功"), "success status shown");
+        Assert(report.Markdown.Contains("抓取状态: 失败"), "failure status shown");
+        Assert(report.Markdown.Contains("Forbidden"), "failure reason shown");
+        Assert(report.Markdown.Contains("不生成摘要"), "failed page anti-hallucination warning shown");
+        Assert(report.Markdown.Contains("Pricing starts today"), "real fetched text summarized");
     }
 
     static void TestProcessSnapshotCollector()

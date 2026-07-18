@@ -61,6 +61,27 @@ try {
         "System.IO.Compression.FileSystem.dll"
     ) -join ";"
 
+    # Playwright for .NET (first external dependency) + transitive DLLs. The test
+    # EXE must reference these so the browser client (used by validation-only tests)
+    # can be JIT-compiled without a full browser install.
+    $packagesDir = Join-Path $Root "src\packages"
+    $pwRefs = New-Object System.Collections.Generic.List[string]
+    function Add-PwRefTest($name) {
+        $dll = Get-ChildItem -Path $packagesDir -Recurse -Filter $name -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($dll -and -not ($pwRefs.Contains($dll.FullName))) { $pwRefs.Add($dll.FullName) }
+    }
+    Add-PwRefTest "Microsoft.Playwright.dll"
+    Add-PwRefTest "System.Text.Json.dll"
+    Add-PwRefTest "Microsoft.Bcl.AsyncInterfaces.dll"
+    Add-PwRefTest "System.Runtime.CompilerServices.Unsafe.dll"
+    Add-PwRefTest "System.Threading.Tasks.Extensions.dll"
+    if (-not (Get-ChildItem -Path $packagesDir -Directory -Filter "Microsoft.Playwright*" -ErrorAction SilentlyContinue)) {
+        Write-Step "ERROR: Microsoft.Playwright not restored. Run: nuget restore src/packages.config" Red
+        Save-Verification 1
+        exit 1
+    }
+    if ($pwRefs.Count -gt 0) { $Refs = ($Refs, ($pwRefs -join ";")) -join ";" }
+
     # Dynamic enumeration: always in sync with the filesystem and csproj.
     # Includes test sources (TestRunner + module tests) so the harness compiles,
     # but excludes the legacy/dead duplicate files (Program.cs, MainForm.cs,
@@ -86,6 +107,11 @@ try {
     $compileOutput = & $Csc /nologo /target:exe /out:$Out /main:TestRunner /reference:$Refs $Src 2>&1
     foreach ($line in $compileOutput) { Write-Step ([Convert]::ToString($line)) Gray }
     if ($LASTEXITCODE -ne 0) { throw "Test compilation failed" }
+
+    # Copy Playwright + transitive DLLs next to the test EXE so the validation-only
+    # tests can JIT the browser client without a full browser install.
+    $testExeDir = Split-Path -Parent $Out
+    foreach ($dll in $pwRefs) { Copy-Item $dll $testExeDir -Force }
 
     Write-Step "Running unit tests ..." Cyan
     $testOutput = & $Out 2>&1

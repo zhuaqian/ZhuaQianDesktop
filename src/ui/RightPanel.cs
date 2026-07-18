@@ -29,8 +29,6 @@ namespace ZhuaQianDesktopApp
         private ToolStripLabel statusLabel;
         private ToolStripProgressBar progressBar;
         private Label panelTitleLabel;
-        private List<RightPanelTab> availableTabs;
-        private string activeTab = "context";
 
         public RightPanel()
         {
@@ -52,9 +50,9 @@ namespace ZhuaQianDesktopApp
                 ColumnCount = 1,
                 RowCount = 3,
                 RowStyles = {
-                    new TableRowStyle(SizeType.Absolute, 48),     // Tab header
-                    new TableRowStyle(SizeType.Percent, 1),      // Tab content
-                    new TableRowStyle(SizeType.Absolute, 40)     // Status bar
+                    new RowStyle(SizeType.Absolute, 48),     // Tab header
+                    new RowStyle(SizeType.Percent, 1),       // Tab content
+                    new RowStyle(SizeType.Absolute, 40)      // Status bar
                 },
                 Padding = new Padding(0),
                 Margin = new Padding(0)
@@ -94,8 +92,7 @@ namespace ZhuaQianDesktopApp
                 Text = "Ready",
                 ForeColor = Color.FromArgb(71, 85, 105),
                 Font = new Font("Microsoft YaHei UI", 8f),
-                AutoSize = true,
-                Spring = true
+                AutoSize = true
             };
             statusStrip.Items.Add(statusLabel);
 
@@ -286,12 +283,12 @@ namespace ZhuaQianDesktopApp
                 BackColor = Color.FromArgb(249, 250, 251)
             };
             contextList.Items.AddRange(new object[] {
-                "@folder: C:\Users\Current\project",
-                "@file: src\index.ts",
-                "@file: src\components\App.tsx",
+                @"@folder: C:\Users\Current\project",
+                @"@file: src\index.ts",
+                @"@file: src\components\App.tsx",
                 "@file: README.md",
                 "@folder: docs",
-                "@file: assets\logo.png"
+                @"@file: assets\logo.png"
             });
             panel.Controls.Add(contextList);
 
@@ -354,11 +351,11 @@ namespace ZhuaQianDesktopApp
                 BackColor = Color.FromArgb(249, 250, 251)
             };
             var projectFiles = new[] {
-                "src\index.ts - Main application entry",
-                "src\components\App.tsx - React component",
-                "src\utils\api.ts - API client",
-                "docs\README.md - Project documentation",
-                "assets\logo.png - Application logo",
+                @"src\index.ts - Main application entry",
+                @"src\components\App.tsx - React component",
+                @"src\utils\api.ts - API client",
+                @"docs\README.md - Project documentation",
+                @"assets\logo.png - Application logo",
                 "package.json - Node package configuration"
             };
             fileList.Items.AddRange(projectFiles);
@@ -413,8 +410,8 @@ namespace ZhuaQianDesktopApp
                 "chart-data.json (156KB) - Chart configuration",
                 "api-documentation.md (45KB) - API docs",
                 "style-guide.md (12KB) - Design guidelines",
-                "scripts\build.bat (8KB) - Build script",
-                "scripts\test.ps1 (12KB) - Test runner"
+                @"scripts\build.bat (8KB) - Build script",
+                @"scripts\test.ps1 (12KB) - Test runner"
             };
             outputList.Items.AddRange(outputs);
             panel.Controls.Add(outputList);
@@ -560,7 +557,7 @@ namespace ZhuaQianDesktopApp
 
             System.Threading.ThreadPool.QueueUserWorkItem((state) =>
             {
-                System.Windows.Forms.Application.Invoke((MethodInvoker)delegate
+                SafeUi((MethodInvoker)delegate
                 {
                     statusLabel.Text = "Context captured successfully";
                     progressBar.Visible = false;
@@ -577,7 +574,7 @@ namespace ZhuaQianDesktopApp
 
             System.Threading.ThreadPool.QueueUserWorkItem((state) =>
             {
-                System.Windows.Forms.Application.Invoke((MethodInvoker)delegate
+                SafeUi((MethodInvoker)delegate
                 {
                     statusLabel.Text = "Context refreshed";
                     progressBar.Visible = false;
@@ -593,7 +590,7 @@ namespace ZhuaQianDesktopApp
 
             System.Threading.ThreadPool.QueueUserWorkItem((state) =>
             {
-                System.Windows.Forms.Application.Invoke((MethodInvoker)delegate
+                SafeUi((MethodInvoker)delegate
                 {
                     statusLabel.Text = "Files refreshed";
                     progressBar.Visible = false;
@@ -609,7 +606,7 @@ namespace ZhuaQianDesktopApp
 
             System.Threading.ThreadPool.QueueUserWorkItem((state) =>
             {
-                System.Windows.Forms.Application.Invoke((MethodInvoker)delegate
+                SafeUi((MethodInvoker)delegate
                 {
                     statusLabel.Text = "Knowledge base refreshed";
                     progressBar.Visible = false;
@@ -625,7 +622,7 @@ namespace ZhuaQianDesktopApp
 
             System.Threading.ThreadPool.QueueUserWorkItem((state) =>
             {
-                System.Windows.Forms.Application.Invoke((MethodInvoker)delegate
+                SafeUi((MethodInvoker)delegate
                 {
                     statusLabel.Text = "Outputs folder opened";
                     progressBar.Visible = false;
@@ -641,7 +638,7 @@ namespace ZhuaQianDesktopApp
 
             System.Threading.ThreadPool.QueueUserWorkItem((state) =>
             {
-                System.Windows.Forms.Application.Invoke((MethodInvoker)delegate
+                SafeUi((MethodInvoker)delegate
                 {
                     statusLabel.Text = "Audit log cleared";
                     progressBar.Visible = false;
@@ -661,6 +658,13 @@ namespace ZhuaQianDesktopApp
                 knowledgeTitle.Text = "Knowledge (156 chunks)";
             if (auditTitle != null)
                 auditTitle.Text = "Audit (4 entries)";
+        }
+
+        private void SafeUi(MethodInvoker action)
+        {
+            if (action == null || IsDisposed) return;
+            if (InvokeRequired) BeginInvoke(action);
+            else action();
         }
     }
 }
