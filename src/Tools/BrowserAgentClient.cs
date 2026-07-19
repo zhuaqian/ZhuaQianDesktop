@@ -3,19 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+#if PLAYWRIGHT
 using Microsoft.Playwright;
+#endif
 
 namespace ZhuaQianDesktopApp.Tools
 {
-    // A single interactive browser session the agent can drive to *complete work*
-    // (not just fetch). Unlike BrowserRenderClient (one-shot read), this holds a
-    // persistent IBrowserContext + IPage so multi-step tasks retain scroll
-    // position, form state, and login cookies across actions.
-    //
-    // Every method is best-effort: failures return a BrowserActionResult with the
-    // error instead of throwing, so the task loop can decide what to do next.
-    //
-    // C# 7.3: explicit disposal via CloseAsync in StopAsync (no `await using`).
+#if PLAYWRIGHT
     public sealed class BrowserAgentClient
     {
         readonly WebSearchClient validator;
@@ -71,25 +65,20 @@ namespace ZhuaQianDesktopApp.Tools
             if (playwright != null) { try { playwright.Dispose(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient dispose playwright: " + ex.Message); } playwright = null; }
         }
 
-        // ---- Observe ---------------------------------------------------------
-
         public async Task<string> SnapshotTextAsync(CancellationToken token = default(CancellationToken))
         {
             if (!IsStarted) return "";
             try { return await page.InnerTextAsync("body").ConfigureAwait(false); }
-            catch { return ""; }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient snapshot text: " + ex.Message); return ""; }
         }
 
         public async Task<string> GetTitleAsync(CancellationToken token = default(CancellationToken))
         {
             if (!IsStarted) return "";
             try { return await page.TitleAsync().ConfigureAwait(false); }
-            catch { return ""; }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient title: " + ex.Message); return ""; }
         }
 
-        // Structured DOM snapshot: every interactive element with a stable
-        // CSS selector + bounding box so a policy can ground "click the login
-        // button" to a concrete action.
         public async Task<List<DomElement>> DomSnapshotAsync(CancellationToken token = default(CancellationToken))
         {
             var outList = new List<DomElement>();
@@ -139,10 +128,8 @@ namespace ZhuaQianDesktopApp.Tools
                     return await page.ScreenshotAsync(new PageScreenshotOptions { Path = path, FullPage = false }).ConfigureAwait(false);
                 return await page.ScreenshotAsync(new PageScreenshotOptions { FullPage = false }).ConfigureAwait(false);
             }
-            catch { return new byte[0]; }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient screenshot: " + ex.Message); return new byte[0]; }
         }
-
-        // ---- Act -------------------------------------------------------------
 
         public async Task<BrowserActionResult> NavigateAsync(string url, int timeoutMs = 30000, CancellationToken token = default(CancellationToken))
         {
@@ -170,7 +157,6 @@ namespace ZhuaQianDesktopApp.Tools
             catch (Exception ex) { return BrowserActionResult.Fail("click failed: " + ex.Message); }
         }
 
-        // Click by visible text (e.g. "Sign in"). Uses Playwright's text locator.
         public async Task<BrowserActionResult> ClickTextAsync(string text, int timeoutMs = 10000, CancellationToken token = default(CancellationToken))
         {
             if (!IsStarted) return BrowserActionResult.Fail("not started");
@@ -195,8 +181,6 @@ namespace ZhuaQianDesktopApp.Tools
             catch (Exception ex) { return BrowserActionResult.Fail("fill failed: " + ex.Message); }
         }
 
-        // Type into the focused element (or a selector) char-by-char; use for
-        // fields that fire key handlers on input.
         public async Task<BrowserActionResult> TypeAsync(string selector, string text, int timeoutMs = 10000, CancellationToken token = default(CancellationToken))
         {
             if (!IsStarted) return BrowserActionResult.Fail("not started");
@@ -259,9 +243,34 @@ namespace ZhuaQianDesktopApp.Tools
             if (installAttempted) return;
             installAttempted = true;
             try { Playwright.InstallAsync().GetAwaiter().GetResult(); }
-            catch { /* launch will surface a clear error if still missing */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Playwright install: " + ex.Message); }
         }
     }
+#else
+    public sealed class BrowserAgentClient
+    {
+        public bool IsStarted { get { return false; } }
+        public string CurrentUrl { get { return ""; } }
+
+        public BrowserAgentClient(WebSearchClient validator = null) { }
+        public Task<BrowserActionResult> StartAsync(bool headless = true, string viewport = "1280x800", string userAgent = null, string storageStatePath = null, CancellationToken token = default(CancellationToken))
+        {
+            return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled in this raw-csc build. Compile with PLAYWRIGHT in an SDK/MSBuild environment."));
+        }
+        public Task StopAsync() { return Task.FromResult(0); }
+        public Task<string> SnapshotTextAsync(CancellationToken token = default(CancellationToken)) { return Task.FromResult(""); }
+        public Task<string> GetTitleAsync(CancellationToken token = default(CancellationToken)) { return Task.FromResult(""); }
+        public Task<List<DomElement>> DomSnapshotAsync(CancellationToken token = default(CancellationToken)) { return Task.FromResult(new List<DomElement>()); }
+        public Task<byte[]> ScreenshotAsync(string path = null, CancellationToken token = default(CancellationToken)) { return Task.FromResult(new byte[0]); }
+        public Task<BrowserActionResult> NavigateAsync(string url, int timeoutMs = 30000, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
+        public Task<BrowserActionResult> ClickAsync(string selector, int timeoutMs = 10000, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
+        public Task<BrowserActionResult> ClickTextAsync(string text, int timeoutMs = 10000, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
+        public Task<BrowserActionResult> FillAsync(string selector, string value, int timeoutMs = 10000, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
+        public Task<BrowserActionResult> TypeAsync(string selector, string text, int timeoutMs = 10000, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
+        public Task<BrowserActionResult> PressKeyAsync(string key, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
+        public Task<BrowserActionResult> SubmitAsync(string formSelector = "form", CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
+    }
+#endif
 
     public sealed class BrowserActionResult
     {

@@ -84,9 +84,9 @@ namespace ZhuaQianDesktopApp.Tests
 
         static void SetupCsharpProject(string root)
         {
+            Directory.CreateDirectory(Path.Combine(root, "src", "scripts"));
             File.WriteAllText(Path.Combine(root, "build.ps1"), "echo build");
             File.WriteAllText(Path.Combine(root, "src", "scripts", "run-tests.ps1"), "echo test");
-            Directory.CreateDirectory(Path.Combine(root, "src"));
         }
 
         static int TestPassOnFirstTry(string baseTmp)

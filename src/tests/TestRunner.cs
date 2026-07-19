@@ -12,6 +12,7 @@ using ZhuaQianDesktopApp.Tools;
 using ZhuaQianDesktopApp;
 using ZhuaQianDesktopApp.Plugins;
 using ZhuaQianDesktopApp.Agent.Hooks;
+using ZhuaQianDesktopApp.Tests;
 using System.Threading.Tasks;
 
 class TestRunner
@@ -56,12 +57,14 @@ class TestRunner
         failures += TestOfficeTemplateLibrary.RunAll();
         failures += TestOfficeTemplateExecutor.RunAll();
         failures += TestBrowserRenderClient.RunAll();
+        failures += TestRemoteHostExecutor.RunAll();
         failures += TestProjectAnalyzer.RunAll();
         failures += TestCodePatcher.RunAll();
         failures += TestErrorParser.RunAll();
         failures += TestBuildFixLoop.RunAll();
         failures += TestGitWorkflow.RunAll();
         failures += TestCodingLoopSession.RunAll();
+        failures += TestDiagnoseFix.RunAll();
 
         Console.WriteLine("================================");
         Console.WriteLine("Passed: " + passed + "  Failed: " + failures);

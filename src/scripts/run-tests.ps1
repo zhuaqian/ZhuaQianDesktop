@@ -34,15 +34,19 @@ try {
         exit 1
     }
 
+    $global:LASTEXITCODE = 0
     $archOutput = & (Join-Path $ScriptDir "check-architecture.ps1") 2>&1
+    $archCode = $LASTEXITCODE
     foreach ($line in $archOutput) { Write-Step ([Convert]::ToString($line)) Gray }
-    if (-not $?) { throw "Architecture check failed" }
+    if ($archCode -ne 0) { throw "Architecture check failed" }
 
     $packageCheck = Join-Path $ScriptDir "check-package.ps1"
     if (Test-Path $packageCheck) {
+        $global:LASTEXITCODE = 0
         $packageOutput = & $packageCheck 2>&1
+        $packageCode = $LASTEXITCODE
         foreach ($line in $packageOutput) { Write-Step ([Convert]::ToString($line)) Gray }
-        if (-not $?) { throw "Package check failed" }
+        if ($packageCode -ne 0) { throw "Package check failed" }
     }
 
     $CscCandidates = @(
@@ -61,26 +65,43 @@ try {
         "System.IO.Compression.FileSystem.dll"
     ) -join ";"
 
-    # Playwright for .NET (first external dependency) + transitive DLLs. The test
-    # EXE must reference these so the browser client (used by validation-only tests)
-    # can be JIT-compiled without a full browser install.
+    # Optional Playwright for .NET + transitive DLLs. The default raw-csc test
+    # build leaves browser rendering disabled because some .NET Framework setups
+    # lack the required netstandard facade assemblies. Set ZQ_ENABLE_PLAYWRIGHT=1
+    # in an SDK/MSBuild environment to compile the full browser feature.
     $packagesDir = Join-Path $Root "packages"
     $pwRefs = New-Object System.Collections.Generic.List[string]
     function Add-PwRefTest($name) {
-        $dll = Get-ChildItem -Path $packagesDir -Recurse -Filter $name -ErrorAction SilentlyContinue | Select-Object -First 1
+        $candidates = @(Get-ChildItem -Path $packagesDir -Recurse -Filter $name -ErrorAction SilentlyContinue)
+        $dll = $null
+        foreach ($tfm in @("\lib\net48\", "\lib\net472\", "\lib\net471\", "\lib\net47\", "\lib\net462\", "\lib\net461\", "\lib\netstandard2.0\", "\build\netstandard2.0\ref\")) {
+            $dll = $candidates | Where-Object { $_.FullName.Contains($tfm) } | Sort-Object FullName -Descending | Select-Object -First 1
+            if ($dll) { break }
+        }
+        if (-not $dll) { $dll = $candidates | Sort-Object FullName -Descending | Select-Object -First 1 }
         if ($dll -and -not ($pwRefs.Contains($dll.FullName))) { $pwRefs.Add($dll.FullName) }
     }
-    Add-PwRefTest "Microsoft.Playwright.dll"
-    Add-PwRefTest "System.Text.Json.dll"
-    Add-PwRefTest "Microsoft.Bcl.AsyncInterfaces.dll"
-    Add-PwRefTest "System.Runtime.CompilerServices.Unsafe.dll"
-    Add-PwRefTest "System.Threading.Tasks.Extensions.dll"
-    if (-not (Get-ChildItem -Path $packagesDir -Directory -Filter "Microsoft.Playwright*" -ErrorAction SilentlyContinue)) {
-        Write-Step "ERROR: Microsoft.Playwright not restored. Run: nuget restore src/packages.config" Red
-        Save-Verification 1
-        exit 1
+    $compileDefines = @()
+    if ($env:ZQ_ENABLE_PLAYWRIGHT -eq "1") {
+        Add-PwRefTest "Microsoft.Playwright.dll"
+        Add-PwRefTest "netstandard.dll"
+        Add-PwRefTest "Microsoft.Bcl.AsyncInterfaces.dll"
+        Add-PwRefTest "System.Buffers.dll"
+        Add-PwRefTest "System.ComponentModel.Annotations.dll"
+        Add-PwRefTest "System.Memory.dll"
+        Add-PwRefTest "System.Numerics.Vectors.dll"
+        Add-PwRefTest "System.Runtime.CompilerServices.Unsafe.dll"
+        Add-PwRefTest "System.Text.Encodings.Web.dll"
+        Add-PwRefTest "System.Text.Json.dll"
+        Add-PwRefTest "System.Threading.Tasks.Extensions.dll"
+        if (-not (Get-ChildItem -Path $packagesDir -Directory -Filter "Microsoft.Playwright*" -ErrorAction SilentlyContinue)) {
+            Write-Step "ERROR: Microsoft.Playwright not restored. Run: nuget restore src/packages.config" Red
+            Save-Verification 1
+            exit 1
+        }
+        $compileDefines += "/define:PLAYWRIGHT"
+        if ($pwRefs.Count -gt 0) { $Refs = ($Refs, ($pwRefs -join ";")) -join ";" }
     }
-    if ($pwRefs.Count -gt 0) { $Refs = ($Refs, ($pwRefs -join ";")) -join ";" }
 
     # Dynamic enumeration: always in sync with the filesystem and csproj.
     # Includes test sources (TestRunner + module tests) so the harness compiles,
@@ -104,7 +125,7 @@ try {
     $Out = Join-Path $testDir ("TestRunner-" + [Guid]::NewGuid().ToString("N") + ".exe")
 
     Write-Step "Compiling unit tests ..." Cyan
-    $compileOutput = & $Csc /nologo /target:exe /out:$Out /main:TestRunner /reference:$Refs $Src 2>&1
+    $compileOutput = & $Csc /nologo /target:exe /out:$Out /main:TestRunner /reference:$Refs $compileDefines $Src 2>&1
     foreach ($line in $compileOutput) { Write-Step ([Convert]::ToString($line)) Gray }
     if ($LASTEXITCODE -ne 0) { throw "Test compilation failed" }
 

@@ -81,6 +81,9 @@ namespace ZhuaQianDesktopApp.Agent.Coding
         static readonly Regex PythonErrorRe = new Regex(
             @"^(?<code>[A-Za-z]+Error):\s*(?<msg>.+?)\s*\((?<file>[^,]+),\s+line\s+(?<line>\d+)\)",
             RegexOptions.Compiled);
+        static readonly Regex PythonSimpleErrorRe = new Regex(
+            @"^(?<code>[A-Za-z]+Error):\s*(?<msg>.+)$",
+            RegexOptions.Compiled);
 
         // Go: path:line:col: message
         static readonly Regex GoRe = new Regex(
@@ -97,7 +100,7 @@ namespace ZhuaQianDesktopApp.Agent.Coding
             @"^error(?:\[(?<code>E\d+)\])?:\s*(?<msg>.+)$",
             RegexOptions.Compiled);
         static readonly Regex RustLocRe = new Regex(
-            @"^-->\s*(?<file>.+?):(?<line>\d+):(?<col>\d+)",
+            @"^\s*-->\s*(?<file>.+?):(?<line>\d+):(?<col>\d+)",
             RegexOptions.Compiled);
 
         // TypeScript / tsc: path(line,col): error TS2304: message
@@ -227,6 +230,25 @@ namespace ZhuaQianDesktopApp.Agent.Coding
                     Add(errors, e);
                     continue;
                 }
+                var mPySimpleErr = PythonSimpleErrorRe.Match(line);
+                if (mPySimpleErr.Success)
+                {
+                    var e = new BuildError();
+                    e.Tool = "python";
+                    e.Severity = ErrorSeverity.Error;
+                    e.Code = mPySimpleErr.Groups["code"].Value;
+                    e.Message = mPySimpleErr.Groups["msg"].Value.Trim();
+                    e.RawLine = line;
+                    var loc = LastPythonLocation(errors);
+                    if (loc != null)
+                    {
+                        e.File = loc.File;
+                        e.Line = loc.Line;
+                        e.Column = loc.Column;
+                    }
+                    Add(errors, e);
+                    continue;
+                }
 
                 // Go.
                 var mGo = GoRe.Match(line);
@@ -300,6 +322,16 @@ namespace ZhuaQianDesktopApp.Agent.Coding
             return lower.Contains("error") || lower.Contains("undefined") || lower.Contains("cannot")
                 || lower.Contains("expected") || lower.Contains("syntax") || lower.Contains("imported")
                 || lower.Contains("declared") || lower.Contains("not used");
+        }
+
+        static BuildError LastPythonLocation(List<BuildError> errors)
+        {
+            for (int i = errors.Count - 1; i >= 0; i--)
+            {
+                var e = errors[i];
+                if (e.Tool == "python" && e.HasLocation) return e;
+            }
+            return null;
         }
 
         static BuildError BuildFromMsbuild(Match m, string rawLine)

@@ -4,6 +4,7 @@ using System.IO;
 using ZhuaQianDesktopApp.Agent.Coding;
 using ZhuaQianDesktopApp.Agent;
 using ZhuaQianDesktopApp.Core;
+using CodingGitWorkflow = ZhuaQianDesktopApp.Agent.Coding.GitWorkflow;
 
 namespace ZhuaQianDesktopApp.Tests
 {
@@ -66,7 +67,7 @@ namespace ZhuaQianDesktopApp.Tests
         {
             var rec = new FakeRecorder();
             rec.Results.Enqueue(Ok(" M src/Program.cs\n?? src/new.cs\nA  installer/Install.ps1\n"));
-            var git = new GitWorkflow(root, AllowGate(), rec);
+            var git = new CodingGitWorkflow(root, AllowGate(), rec);
             var entries = git.Status();
             int f = 0;
             Assert(ref f, entries.Count == 3, "3 status entries, got " + entries.Count);
@@ -84,7 +85,7 @@ namespace ZhuaQianDesktopApp.Tests
         {
             var rec = new FakeRecorder();
             rec.Results.Enqueue(Ok(" M src/Program.cs\n M src/Agent/Coding/CodePatcher.cs\n"));
-            var git = new GitWorkflow(root, AllowGate(), rec);
+            var git = new CodingGitWorkflow(root, AllowGate(), rec);
             string msg = git.SuggestCommitMessage();
             int f = 0;
             Assert(ref f, msg.Contains("fix"), "message type is fix for source changes, got: " + msg);
@@ -97,7 +98,7 @@ namespace ZhuaQianDesktopApp.Tests
         {
             var rec = new FakeRecorder();
             rec.Results.Enqueue(Ok(" M docs/README.md\n M docs/ARCH.md\n"));
-            var git = new GitWorkflow(root, AllowGate(), rec);
+            var git = new CodingGitWorkflow(root, AllowGate(), rec);
             string msg = git.SuggestCommitMessage();
             int f = 0;
             Assert(ref f, msg.StartsWith("docs"), "message type is docs for doc-only changes, got: " + msg);
@@ -109,7 +110,7 @@ namespace ZhuaQianDesktopApp.Tests
         {
             var rec = new FakeRecorder();
             rec.Results.Enqueue(Ok("diff --git a/file b/file\n@@ -1,1 +1,1 @@\n-old\n+new\n"));
-            var git = new GitWorkflow(root, AllowGate(), rec);
+            var git = new CodingGitWorkflow(root, AllowGate(), rec);
             string diff = git.Diff();
             int f = 0;
             Assert(ref f, diff.Contains("-old"), "diff has -old: " + diff);
@@ -121,7 +122,7 @@ namespace ZhuaQianDesktopApp.Tests
         {
             var rec = new FakeRecorder();
             rec.Results.Enqueue(Ok("Switched to a new branch 'fix/typo'"));
-            var git = new GitWorkflow(root, AllowGate(), rec);
+            var git = new CodingGitWorkflow(root, AllowGate(), rec);
             var result = git.CreateBranch("fix/typo");
             int f = 0;
             Assert(ref f, result.Ok, "create branch succeeds");
@@ -134,7 +135,7 @@ namespace ZhuaQianDesktopApp.Tests
             var gate = new PermissionGate();
             gate.Set("permCommandRun", PermissionLevel.Deny);
             var rec = new FakeRecorder();
-            var git = new GitWorkflow(root, gate, rec);
+            var git = new CodingGitWorkflow(root, gate, rec);
             var entries = git.Status();
             int f = 0;
             Assert(ref f, entries.Count == 0, "denied => empty status");
@@ -146,7 +147,7 @@ namespace ZhuaQianDesktopApp.Tests
         {
             var rec = new FakeRecorder();
             rec.Results.Enqueue(Ok("diff --git a/f b/f\n-old\n+new\n"));
-            var git = new GitWorkflow(root, AllowGate(), rec);
+            var git = new CodingGitWorkflow(root, AllowGate(), rec);
             string patchPath = Path.Combine(root, "out.patch");
             var result = git.ExportPatch(patchPath);
             int f = 0;
@@ -159,7 +160,7 @@ namespace ZhuaQianDesktopApp.Tests
         static int TestInvalidBranchName(string root)
         {
             var rec = new FakeRecorder();
-            var git = new GitWorkflow(root, AllowGate(), rec);
+            var git = new CodingGitWorkflow(root, AllowGate(), rec);
             var result = git.CreateBranch("bad; name");
             int f = 0;
             Assert(ref f, !result.Ok, "invalid branch name rejected");

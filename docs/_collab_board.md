@@ -181,3 +181,30 @@
 - 所有在制品未提交；沙箱禁 csc 未经真编译。**请用户本地 `build.ps1` + `run-tests.ps1` 复跑确认全绿（预期 191/0）**——尤其前一轮刚退役 `PluginRegistry` 修了一处真坏构建，本次接线需一并验证。
 
 边界提醒：本回合改了 `MainForm.LocalActionRouting.cs`（属 main-form 家族 partial）。Process X 清单未单列此文件，但本会话已认领；提醒 Process X 勿在 `TryRunNaturalLocalAction` / `ExecuteOfficeGenerate` 区域重复改动，以免合并冲突。
+
+## 2026-07-18 Epic D4 DiagnoseFix 闭环收口（单一管道合规 + 冗余清理）
+
+本回合完成 P0 "诊断并修复编译失败" 闭环，并把此前我误建的重复实现清掉，使该能力走**真正的单一管道**（Command → PermissionGate →(Approval)→ Executor → AuditLog），不再绕过审批直接写盘。
+
+### 评估后确认的问题
+- 我之前在 `src/Agent/DiagnoseFixExecutor.cs` 用 `new PermissionGate(){AutoMode=true}` + `UnifiedPatch/PatchApplier`（来自我重复建的根目录 `DiffEngine.cs`）直接写盘改码，**违反"所有副作用必须过单一管道"铁律**；且 `PatchExecutor`/`GitWorkflowExecutor` 的根被钉在 `%APPDATA%`（configDir 父目录），诊断外部项目时 `IsWithinRoot` 会拒掉所有目标。
+- 并行构建进程（Process X）已把完整闭环引擎落到 `Agent/Coding/*`（`ProjectAnalyzer`/`CodePatcher`/`BuildFixLoop`+`RuleBasedFixStrategy`/`CodingLoopSession`/`FixLoopRunner`+`PatchExecutor`/`GitWorkflowExecutor`）+ UI 入口层 `MainForm.DiagnoseFix.cs`（NL 路由 + 对话框接线 + git 导出/提交/重跑）。我的 `ProjectScanner/DiffEngine/GitWorkflow(top)/CodingLoop` 与之一一撞车，100% 冗余。
+
+### 已做（net-new + 清理，零撞车）
+- **重写 `src/Agent/DiagnoseFixExecutor.cs`**：`ctor(AgentPipeline pipeline, string projectRoot)`，内部走 **FixLoopRunner（B 路径）**——经 `pipeline.Run(new AgentCommand("PatchFile", ...))` 应用补丁、经 `GitWorkflowExecutor` 跑 git，全部走审批管道。新增 `DiagnoseFixFixStrategy : FixLoopRunner.IFixStrategy`（internal，复用生产级 `RuleBasedFixStrategy` 的 CS1002/CS0246/CS0103 安全修复，把 `Coding.BuildError` 映射成 `PatchOp`）。手动 unified diff 经 `ParseUnifiedDiffToOps` 解析后也走 `PatchFile` 管道。
+- **`AgentPipelineFactory.Create` 增 `projectRootOverride` 形参**；`RegisterStandardExecutors` 据其把 `PatchExecutor/GitWorkflowExecutor/DiagnoseFixExecutor` 的根钉在**被诊断的 `root`**（而非 `%APPDATA%`），外部项目不再被拒。
+- **`src/ui/MainForm.DiagnoseFix.cs`**：去掉 `await Task.Run(() => pipeline.Run(...))`（原写法会让 `ShowApprovalCard` 在后台线程触发，跨线程崩）。改为与 `ExecuteOfficeGenerate` 一致的同步 `pipeline.Run`，审批卡在 UI 线程弹出。4 处 `agentPipelineFactory.Create(...)` 均传入 `root` 作为 projectRootOverride。
+- **删冗余死文件**：`src/Agent/CodingLoop.cs`、`src/Agent/DiffEngine.cs`、`src/Agent/ProjectScanner.cs`、`src/Agent/GitWorkflow.cs`（top-level，与 `Coding/GitWorkflow.cs` 撞车）。同步移除 csproj 第 96/98/99/100 行 Compile Include（保留 97 `FixLoopRunner.cs`）。
+- **`src/Agent/FixLoopRunner.cs`**：`FixLoopReport` 增 `ToMarkdown()`（B 路径报告此前无 Markdown 渲染）。
+- **`src/tests/TestDiagnoseFix.cs`**（新增，自带 `RunAll()`）：① 工厂登记 DiagnoseFix/PatchFile/GitWorkflow 断言；② `DiagnoseFixFixStrategy` 把 CS1002 映射为 edit `PatchOp`；③ 手动 unified diff 经管道落到磁盘（semicolon 被补上）。`TestRunner.cs` 加 `failures += TestDiagnoseFix.RunAll();`。
+
+### 验证（沙箱禁 csc，符号级 + 脚本级）
+- `check-architecture.ps1` 复跑 **PASSED**（预算未破、零 `new Tools.` 违规；DiagnoseFixExecutor ~270 行、FixLoopRunner ~230 行均 < 900）。
+- `grep` 确认 `UnifiedPatch/PatchApplier/ProjectScanner/DiffEngine/CodingLoop` 全 src 零引用；`GitWorkflow` 残留引用均指向保留的 `Coding/GitWorkflow`；`new DiagnoseFixExecutor(` 仅工厂一处。
+- `DiagnoseFixDialog` ctor 本就是 4 参（reportMarkdown, rootDirectory, translator, languageCode），与调用点 `new DiagnoseFixDialog(markdown, root, Tr, uiLanguage)` 一致，无编译错。
+
+### 剩余风险
+- 所有在制品未提交；沙箱禁 csc 未经真编译。**请用户本地 `build.ps1` + `run-tests.ps1` 复跑确认全绿（预期测试数 +1）**。
+
+### 边界提醒
+本回合改了 `MainForm.DiagnoseFix.cs`（main-form 家族 partial）与 `AgentPipelineFactory.cs`（Process X 声明拥有的构建/工厂文件）。前者本会话已认领；后者为加一个可选形参（默认 null，向后兼容现有 24 处 `Create` 调用），无行为回归，但建议 Process X 知悉以免重复改同一区域。

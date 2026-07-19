@@ -27,12 +27,17 @@ namespace ZhuaQianDesktopApp.Tools
         readonly TextBox detailBox;
         readonly TextBox editBox;
         readonly Func<string, string, string, string> tr;
+        readonly bool _highRisk;
 
+        // SECURITY: high-risk command types (RemoteHost, BrowserControl) must always render the
+        // full command/URL/target host verbatim and must NEVER offer a "remember this choice"
+        // default. There is intentionally no "remember" toggle anywhere in this dialog.
         public ApprovalCard(string title, string mode, List<string> requiredPermissions,
             List<string> affectedPaths, string risk, string output, string auditNote,
-            Func<string, string, string, string> translator)
+            Func<string, string, string, string> translator, bool highRisk = false)
         {
             tr = translator ?? ((en, zhHans, zhHant) => en);
+            _highRisk = highRisk;
             _Decision = ApprovalDecision.Cancelled;
             _EditedDetail = "";
             Text = "ZhuaQian - " + (title ?? T("Approval", "审批", "審批"));
@@ -43,6 +48,23 @@ namespace ZhuaQianDesktopApp.Tools
             Size = new Size(560, 520);
 
             int y = 14;
+            if (_highRisk)
+            {
+                var warn = new Label
+                {
+                    Left = 14,
+                    Top = 14,
+                    Width = 520,
+                    Height = 34,
+                    ForeColor = Color.FromArgb(190, 40, 40),
+                    Font = new Font(Font, FontStyle.Bold),
+                    Text = T("HIGH RISK: the full command/URL/target is shown below. This approval is NOT remembered and will not apply to future similar actions.",
+                              "高风险：下方显示完整命令 / URL / 目标主机。本次批准不会被记忆，也不会套用到后续同类操作。",
+                              "高風險：下方顯示完整命令 / URL / 目標主機。本次核准不會被記憶，也不會套用到後續同類操作。")
+                };
+                Controls.Add(warn);
+                y = 56;
+            }
             y = AddLabel(T("Action", "动作", "動作"), title ?? "", y, true);
             y = AddLabel(T("Mode", "模式", "模式"), mode ?? "", y, false);
             y = AddLabel(T("Required permissions", "所需权限", "所需權限"), EmptyText(string.Join(", ", requiredPermissions ?? new List<string>())), y, false);
@@ -58,7 +80,7 @@ namespace ZhuaQianDesktopApp.Tools
                 Left = 14,
                 Top = y,
                 Width = 520,
-                Height = 110,
+                Height = _highRisk ? 170 : 110,
                 Multiline = true,
                 ScrollBars = ScrollBars.Vertical,
                 ReadOnly = true,
@@ -134,6 +156,13 @@ namespace ZhuaQianDesktopApp.Tools
                 sb.AppendLine("");
                 sb.AppendLine(auditNote);
             }
+            else if (_highRisk)
+            {
+                sb.AppendLine("");
+                sb.AppendLine(T("WARNING: no command detail was provided for this high-risk action. Treat this as a configuration defect and do not approve until the full command is shown.",
+                                "警告：该高风险操作未提供命令详情。这属于配置缺陷，在完整命令显示前不应批准。",
+                                "警告：該高風險操作未提供命令詳情。這屬於配置缺陷，在完整命令顯示前不應核准。"));
+            }
             return sb.ToString();
         }
 
@@ -151,9 +180,10 @@ namespace ZhuaQianDesktopApp.Tools
         public static ApprovalDecision Show(IWin32Window owner, string title, string mode,
             List<string> requiredPermissions, List<string> affectedPaths, string risk, string output, string auditNote,
             Func<string, string, string, string> translator,
+            bool highRisk = false,
             out string editNote)
         {
-            using (var card = new ApprovalCard(title, mode, requiredPermissions, affectedPaths, risk, output, auditNote, translator))
+            using (var card = new ApprovalCard(title, mode, requiredPermissions, affectedPaths, risk, output, auditNote, translator, highRisk))
             {
                 card.ShowDialog(owner);
                 editNote = card.EditedDetail;

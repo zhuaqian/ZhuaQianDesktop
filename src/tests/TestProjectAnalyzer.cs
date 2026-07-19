@@ -36,7 +36,7 @@ namespace ZhuaQianDesktopApp.Tests
         static int TestCSharpProject(string baseTmp)
         {
             string root = Path.Combine(baseTmp, "csharp");
-            Directory.CreateDirectory(Path.Combine(root, "src"));
+            Directory.CreateDirectory(Path.Combine(root, "src", "scripts"));
             File.WriteAllText(Path.Combine(root, "build.ps1"), "echo build");
             File.WriteAllText(Path.Combine(root, "src", "scripts", "run-tests.ps1"), "echo test");
             File.WriteAllText(Path.Combine(root, "src", "Program.cs"), "class Program { static void Main() {} }");

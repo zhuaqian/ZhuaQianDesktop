@@ -93,11 +93,7 @@
     <Compile Include="Agent\GitWorkflowExecutor.cs" />
     <Compile Include="Agent\DiagnoseFixExecutor.cs" />
     <Compile Include="Agent\TaskAgentRunner.cs" />
-    <Compile Include="Agent\CodingLoop.cs" />
     <Compile Include="Agent\FixLoopRunner.cs" />
-    <Compile Include="Agent\DiffEngine.cs" />
-    <Compile Include="Agent\ProjectScanner.cs" />
-    <Compile Include="Agent\GitWorkflow.cs" />
     <Compile Include="Agent\ExportFileExecutor.cs" />
     <Compile Include="Agent\OfficeTemplateExecutor.cs" />
     <Compile Include="Agent\OrganizeFolderExecutor.cs" />

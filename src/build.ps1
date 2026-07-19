@@ -26,27 +26,44 @@ $refs = @(
     "System.IO.Compression.FileSystem.dll"
 )
 
-# --- Playwright for .NET (first external NuGet dependency) -------------------
-# Resolve the managed DLL + its transitive deps from the restored packages folder
-# so the raw-csc build can compile/run the browser-rendering feature.
+# --- Optional Playwright for .NET --------------------------------------------
+# The default raw-csc build keeps browser rendering disabled because this
+# package targets netstandard2.0 and some Windows machines lack the matching
+# .NET Framework facade assemblies. Set ZQ_ENABLE_PLAYWRIGHT=1 in an SDK/MSBuild
+# environment to compile the full browser-rendering feature.
 $packagesDir = Join-Path $PSScriptRoot "packages"
 $pwRefs = New-Object System.Collections.Generic.List[string]
 function Add-PwRef($name) {
-    $dll = Get-ChildItem -Path $packagesDir -Recurse -Filter $name -ErrorAction SilentlyContinue | Select-Object -First 1
+    $candidates = @(Get-ChildItem -Path $packagesDir -Recurse -Filter $name -ErrorAction SilentlyContinue)
+    $dll = $null
+    foreach ($tfm in @("\lib\net48\", "\lib\net472\", "\lib\net471\", "\lib\net47\", "\lib\net462\", "\lib\net461\", "\lib\netstandard2.0\", "\build\netstandard2.0\ref\")) {
+        $dll = $candidates | Where-Object { $_.FullName.Contains($tfm) } | Sort-Object FullName -Descending | Select-Object -First 1
+        if ($dll) { break }
+    }
+    if (-not $dll) { $dll = $candidates | Sort-Object FullName -Descending | Select-Object -First 1 }
     if ($dll -and -not ($pwRefs.Contains($dll.FullName))) { $pwRefs.Add($dll.FullName) }
 }
-Add-PwRef "Microsoft.Playwright.dll"
-Add-PwRef "System.Text.Json.dll"
-Add-PwRef "Microsoft.Bcl.AsyncInterfaces.dll"
-Add-PwRef "System.Runtime.CompilerServices.Unsafe.dll"
-Add-PwRef "System.Threading.Tasks.Extensions.dll"
-if (-not (Get-ChildItem -Path $packagesDir -Directory -Filter "Microsoft.Playwright*" -ErrorAction SilentlyContinue)) {
-    Write-Host "ERROR: Microsoft.Playwright NuGet package not found in $packagesDir" -ForegroundColor Red
-    Write-Host "Run: nuget restore src/packages.config   (then re-run build.ps1)" -ForegroundColor Yellow
-    Write-Host "Browsers install automatically on first browser fetch." -ForegroundColor Yellow
-    exit 1
+if ($env:ZQ_ENABLE_PLAYWRIGHT -eq "1") {
+    Add-PwRef "Microsoft.Playwright.dll"
+    Add-PwRef "netstandard.dll"
+    Add-PwRef "Microsoft.Bcl.AsyncInterfaces.dll"
+    Add-PwRef "System.Buffers.dll"
+    Add-PwRef "System.ComponentModel.Annotations.dll"
+    Add-PwRef "System.Memory.dll"
+    Add-PwRef "System.Numerics.Vectors.dll"
+    Add-PwRef "System.Runtime.CompilerServices.Unsafe.dll"
+    Add-PwRef "System.Text.Encodings.Web.dll"
+    Add-PwRef "System.Text.Json.dll"
+    Add-PwRef "System.Threading.Tasks.Extensions.dll"
+    if (-not (Get-ChildItem -Path $packagesDir -Directory -Filter "Microsoft.Playwright*" -ErrorAction SilentlyContinue)) {
+        Write-Host "ERROR: Microsoft.Playwright NuGet package not found in $packagesDir" -ForegroundColor Red
+        Write-Host "Run: nuget restore src/packages.config   (then re-run build.ps1)" -ForegroundColor Yellow
+        Write-Host "Browsers install automatically on first browser fetch." -ForegroundColor Yellow
+        exit 1
+    }
+    $refs = $refs + $pwRefs.ToArray()
+    $src = @("/define:PLAYWRIGHT") + $src
 }
-$refs = $refs + $pwRefs.ToArray()
 
 $argsList = @(
     "/target:winexe"

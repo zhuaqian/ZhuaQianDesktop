@@ -193,6 +193,30 @@ namespace ZhuaQianDesktopApp.Agent
             public string Status = "pending";
             public List<FixLoopIteration> Iterations = new List<FixLoopIteration>();
             public List<string> ChangedFiles = new List<string>();
+
+            public string ToMarkdown()
+            {
+                var sb = new StringBuilder();
+                sb.AppendLine("## Diagnose & Fix Loop Report");
+                sb.AppendLine();
+                sb.AppendLine("Root: " + (string.IsNullOrWhiteSpace(RootDirectory) ? "(unknown)" : RootDirectory));
+                sb.AppendLine("Status: **" + Status + "**");
+                sb.AppendLine("Iterations: " + Iterations.Count.ToString());
+                if (ChangedFiles.Count > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("### Changed files (" + ChangedFiles.Count.ToString() + ")");
+                    foreach (var f in ChangedFiles) sb.AppendLine("- " + f);
+                }
+                if (Iterations.Count > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine("### Iterations");
+                    foreach (var it in Iterations)
+                        sb.AppendLine("- #" + it.Iteration.ToString() + " `" + it.Command + "` -> exit " + it.ExitCode.ToString() + " " + (it.Success ? "PASS" : "FAIL"));
+                }
+                return sb.ToString().Trim();
+            }
         }
     }
 }

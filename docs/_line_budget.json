@@ -1,7 +1,8 @@
 ﻿{
     "mainFile":  "ZhuaQianDesktop.cs",
-    "maxMainLines":  3627,
+    "maxMainLines":  3616,
     "maxOtherCsLines":  900,
+    "_countingMethod":  "non-blank lines (trimmed empty lines excluded). check-architecture.ps1 counts with `(Get-Content | Where-Object { $_.Trim() -ne \u0027\u0027 } | Measure-Object).Count`. Do NOT verify this budget with `wc -l` or editor line counts (those include blank lines) — they will report ~264 more lines and falsely suggest a failure. Keep the script as the single source of truth.",
     "maxAllowedToolNewExceptions":  5,
     "allowedToolNews":  [
                             {
@@ -25,5 +26,5 @@
                                 "backlog":  "E-BrowserRender"
                             }
                         ],
-    "lastUpdated":  "2026-07-18T13:15:46.8270479+08:00"
+    "lastUpdated":  "2026-07-19T23:11:10.1519882+08:00"
 }

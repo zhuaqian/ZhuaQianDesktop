@@ -162,7 +162,7 @@ namespace ZhuaQianDesktopApp.Agent
             finally
             {
                 report.History = history;
-                try { await env.TeardownAsync().ConfigureAwait(false); }
+                try { env.TeardownAsync().GetAwaiter().GetResult(); }
                 catch (Exception ex) { System.Diagnostics.Debug.WriteLine("TaskAgentRunner teardown: " + ex.Message); }
             }
         }

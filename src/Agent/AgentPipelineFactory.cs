@@ -21,14 +21,14 @@ namespace ZhuaQianDesktopApp.Agent
             this.webSearchClient = webSearchClient ?? new WebSearchClient();
         }
 
-        public AgentPipeline Create(PermissionGate permissionGate, string pluginDir, bool allowAdvancedPlugins)
+        public AgentPipeline Create(PermissionGate permissionGate, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null)
         {
             var pipeline = new AgentPipeline(permissionGate, new AuditLog(auditLogPath), outputsHub);
-            RegisterStandardExecutors(pipeline, pluginDir, allowAdvancedPlugins);
+            RegisterStandardExecutors(pipeline, pluginDir, allowAdvancedPlugins, projectRootOverride);
             return pipeline;
         }
 
-        public void RegisterStandardExecutors(AgentPipeline pipeline, string pluginDir, bool allowAdvancedPlugins)
+        public void RegisterStandardExecutors(AgentPipeline pipeline, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null)
         {
             pipeline.Register(new ExportFileExecutor(officeExporter));
             pipeline.Register(new OfficeTemplateExecutor(officeExporter));
@@ -45,14 +45,20 @@ namespace ZhuaQianDesktopApp.Agent
             // same permission pipeline (permNetworkUpload / permScreenshot).
             pipeline.Register(new BrowserControlExecutor(new BrowserAgentClient(webSearchClient), System.IO.Path.Combine(configDir, "browser-shots")));
             pipeline.Register(new ScreenCaptureExecutor(new DesktopScreenCapture(), System.IO.Path.Combine(configDir, "screen-shots")));
+            pipeline.Register(new RemoteHostExecutor(System.IO.Path.Combine(configDir, "remote-output")));
             // Epic D: coding-agent closed loop building blocks.
             // configDir is the app config root; the project root for patches/git
             // is the parent of configDir (fall back to current directory).
-            string projectRoot = configDir != null ? System.IO.Directory.GetParent(configDir)?.FullName : null;
+            string projectRoot = projectRootOverride;
+            if (string.IsNullOrWhiteSpace(projectRoot))
+            {
+                System.IO.DirectoryInfo parent = configDir != null ? System.IO.Directory.GetParent(configDir) : null;
+                projectRoot = parent != null ? parent.FullName : null;
+            }
             if (string.IsNullOrWhiteSpace(projectRoot)) projectRoot = System.IO.Directory.GetCurrentDirectory();
             pipeline.Register(new PatchExecutor(projectRoot));
             pipeline.Register(new GitWorkflowExecutor(projectRoot));
-            pipeline.Register(new DiagnoseFixExecutor());
+            pipeline.Register(new DiagnoseFixExecutor(pipeline, projectRoot));
         }
     }
 }

@@ -16,7 +16,6 @@ using System.Windows.Forms;
 using ZhuaQianDesktopApp.Agent;
 using ZhuaQianDesktopApp.Core;
 using ZhuaQianDesktopApp.Providers;
-
 namespace ZhuaQianDesktopApp
 {
     public class TaskInfo
@@ -26,14 +25,12 @@ namespace ZhuaQianDesktopApp
         public string Status;
         public string LastAction;
         public DateTime UpdatedAt;
-
         public override string ToString()
         {
             string title = string.IsNullOrWhiteSpace(Title) ? "Untitled task" : Title;
             return "[" + MainForm.TaskStatusLabel(Status) + "] " + title;
         }
     }
-
     public class IndexedDoc
     {
         public string DocId;
@@ -63,7 +60,6 @@ namespace ZhuaQianDesktopApp
         const int HotkeyId = 9201;
         const uint ModAlt = 0x0001;
         const int WmHotkey = 0x0312;
-
         readonly string configDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ZhuaQianDesktop");
         readonly string configPath;
         readonly string tasksDir;
@@ -79,7 +75,7 @@ namespace ZhuaQianDesktopApp
         readonly Documents.Redactor redactor = new Documents.Redactor();
         readonly Knowledge.Chunker chunker = new Knowledge.Chunker();
         readonly Tools.WebSearchClient webSearchClient = new Tools.WebSearchClient();
-        readonly Tools.BrowserRenderClient browserRenderClient = new Tools.BrowserRenderClient(webSearchClient);
+        readonly Tools.BrowserRenderClient browserRenderClient = new Tools.BrowserRenderClient();
         readonly Tools.SystemDiagnostics systemDiagnostics = new Tools.SystemDiagnostics();
         readonly AgentPipelineFactory agentPipelineFactory;
         readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = int.MaxValue, RecursionLimit = 100 };
@@ -554,16 +550,7 @@ namespace ZhuaQianDesktopApp
             };
             topPanel.Controls.Add(currentTaskLabel);
 
-            modelLabel = new Label
-            {
-                Text = CurrentModelLabel(),
-                Location = new Point(290, 17),
-                AutoSize = false,
-                AutoEllipsis = true,
-                Size = new Size(280, 22),
-                ForeColor = zqMuted
-            };
-            topPanel.Controls.Add(modelLabel);
+            CreateTopModelControls(topPanel);
 
             modeCombo = new ComboBox { Width = 96, Height = 28, DropDownStyle = ComboBoxStyle.DropDownList, Anchor = AnchorStyles.Top | AnchorStyles.Right };
             PopulateModeCombo();
@@ -645,21 +632,14 @@ namespace ZhuaQianDesktopApp
                 powerButton.Left = commandButton.Left - powerButton.Width - 8;
                 modeCombo.Left = powerButton.Left - modeCombo.Width - 8;
                 modeCombo.Top = 12;
-                int actionsLeft = modeCombo.Left;
+                int actionsLeft = LayoutTopModelSwitcher(modeCombo.Left, topPanel.ClientSize.Width);
                 int taskX = 70;
                 int available = actionsLeft - taskX - 10;
                 currentTaskLabel.Visible = available > 40;
-                modelLabel.Visible = available > 260;
                 if (available > 40)
                 {
-                    int taskW = modelLabel.Visible ? Math.Min(360, Math.Max(120, (int)(available * 0.58))) : Math.Max(40, available);
+                    int taskW = Math.Max(40, available);
                     currentTaskLabel.SetBounds(taskX, 15, taskW, 22);
-                    int modelX = taskX + taskW + 10;
-                    int modelW = actionsLeft - modelX - 8;
-                    if (modelLabel.Visible && modelW > 80)
-                        modelLabel.SetBounds(modelX, 17, modelW, 22);
-                    else
-                        modelLabel.Visible = false;
                 }
             };
             topPanel.Resize += (s, e) => layoutTop();
@@ -1186,7 +1166,7 @@ namespace ZhuaQianDesktopApp
                 string suffix = string.IsNullOrWhiteSpace(currentTaskLastAction) ? "" : " | " + currentTaskLastAction;
                 currentTaskLabel.Text = currentTaskTitle + "  [" + TaskStatusLabel(currentTaskStatus) + "]" + suffix;
             }
-            if (modelLabel != null) modelLabel.Text = CurrentModelLabel();
+            RefreshTopModelSwitcher();
             if (layoutTop != null) layoutTop();
         }
 
@@ -2974,13 +2954,19 @@ namespace ZhuaQianDesktopApp
             return ShowApprovalCard("RunPlugin", Tr("Run plugin", "运行插件", "執行外掛"), Tr("Execute", "执行", "執行"), Tr("Run plugins", "运行插件", "執行外掛"), path, risk, output, detail, path);
         }
 
-        bool ShowApprovalCard(string actionType, string title, string modeName, string permission, string affected, string risk, string output, string detail, string outputPath)
+        bool ShowApprovalCard(string actionType, string title, string modeName, string permission, string affected, string risk, string output, string detail, string outputPath, bool highRisk = false)
         {
+            // High-risk command types (RemoteHost, BrowserControl) must always show the full
+            // command/URL/target verbatim and must never offer a "remember this choice" default.
+            // Detect by actionType so any future RemoteHost/BrowserControl wiring is covered
+            // automatically without editing each call site.
+            bool isHighRisk = highRisk || actionType == "RemoteHost" || actionType == "BrowserControl";
             string editNote;
             var decision = Tools.ApprovalCard.Show(this, title, modeName,
                 new List<string> { permission },
                 new List<string> { affected },
                 risk, output, detail, Tr,
+                isHighRisk,
                 out editNote);
             bool approved = decision == Tools.ApprovalDecision.Approved || decision == Tools.ApprovalDecision.Edited;
             RecordAction(actionType, approved ? "approved" : "cancelled", title + "\n" + (editNote ?? ""), outputPath);
@@ -3048,7 +3034,6 @@ namespace ZhuaQianDesktopApp
             if (MayUseCloudProvider(parts)
                 && !EnsurePermission(Tr("Cloud/network upload", "云端/网络上传", "雲端/網路上傳"), permNetworkUpload, false, "Cloud Provider Call"))
                 return;
-            if (MayUseCloudProvider(parts) && !ConfirmCloudUploadIfNeeded(parts)) return;
 
             string displayText = text.Length > 0 ? text : "Please analyze the uploaded file.";
             if (pendingLabels.Count > 0) displayText += "\n[Files] " + string.Join("; ", pendingLabels.ToArray());
@@ -3121,7 +3106,7 @@ namespace ZhuaQianDesktopApp
                 }
 
                 string modelAfter = providerManager.CurrentModel != null ? providerManager.CurrentModel.Id : ""; if (!string.Equals(modelBefore, modelAfter, StringComparison.OrdinalIgnoreCase)) { string notice = string.IsNullOrWhiteSpace(providerManager.LastFallbackNotice) ? "Auto-switched to fallback model: " + CurrentModelLabel() : providerManager.LastFallbackNotice; reply += "\r\n[" + notice + "]"; try { SaveConfig(); } catch (Exception _ex) { System.Diagnostics.Debug.WriteLine("SaveConfig after model switch: " + _ex.Message); } }
-                if (modelLabel != null) modelLabel.Text = CurrentModelLabel();
+                RefreshTopModelSwitcher();
                 AppendChat("ZhuaQian", reply, Color.FromArgb(0, 130, 80));
                 var modelParts = new ArrayList { NewTextPart(reply) };
                 messages.Add(new Dictionary<string, object> { { "role", "model" }, { "parts", modelParts } });
@@ -3877,7 +3862,6 @@ namespace ZhuaQianDesktopApp
             }
             catch (Exception _ex) { LogAction("Warning", "CaptureContext: " + _ex.Message); }
         }
-
         [STAThread]
         public static void Main()
         {

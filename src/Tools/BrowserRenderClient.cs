@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+#if PLAYWRIGHT
 using Microsoft.Playwright;
+#endif
 
 namespace ZhuaQianDesktopApp.Tools
 {
-    // Options for a single browser-rendered page fetch.
-    // Mirrors the controls a research analyst needs: wait for a selector to
-    // appear (SPA hydration), extra settle time, headless toggle, and login
-    // state persistence via Playwright storage state (cookies + localStorage).
     public sealed class BrowserFetchOptions
     {
         public bool Headless = true;
@@ -23,30 +21,17 @@ namespace ZhuaQianDesktopApp.Tools
         public string Viewport = "1280x800";
         public string Locale = "zh-CN";
         public Dictionary<string, string> ExtraHeaders = null;
-        // Load a previously saved login session (cookies + localStorage JSON).
         public string UseStorageStatePath = "";
-        // Persist the session after navigation so subsequent fetches stay logged in.
         public string SaveStorageStatePath = "";
-        // Extra Chromium launch arguments, space separated.
         public string BrowserArgs = "";
     }
 
-    // Thin, product-facing wrapper around a headless Chromium (Playwright for .NET).
-    // Produces a WebPageFetchResult so its output drops straight into the existing
-    // WebPageReportBuilder pipeline. Every public entry is async; the caller (executor
-    // or research fetcher) owns the synchronization boundary.
-    //
-    // This is the FIRST external NuGet dependency in the project. The raw-csc build
-    // (build.ps1 / run-tests.ps1) resolves Microsoft.Playwright.dll + transitive DLLs
-    // from the restored packages folder; see docs/patches/BROWSER_RENDER_INTEGRATION.md.
-    //
-    // NOTE: kept to C# 7.3 (the project's LangVersion) -- disposal is explicit
-    // (CloseAsync / DisposeAsync in try/finally) rather than `await using`.
     public sealed class BrowserRenderClient
     {
         readonly WebSearchClient validator;
-        // Browsers are downloaded once per process via Playwright.InstallAsync().
+#if PLAYWRIGHT
         static bool installAttempted;
+#endif
 
         public BrowserRenderClient(WebSearchClient validator = null)
         {
@@ -68,6 +53,7 @@ namespace ZhuaQianDesktopApp.Tools
                 return result;
             }
 
+#if PLAYWRIGHT
             try
             {
                 EnsureBrowsersInstalled();
@@ -155,17 +141,20 @@ namespace ZhuaQianDesktopApp.Tools
                 result.ErrorMessage = ex.Message;
                 return result;
             }
+#else
+            await Task.Yield();
+            result.ErrorMessage = "Browser rendering is not enabled in this raw-csc build. Use the normal web fetch path or compile with PLAYWRIGHT in an SDK/MSBuild environment.";
+            return result;
+#endif
         }
 
-        // Playwright downloads the browser binaries on first use. We attempt it once
-        // per process; if the network is unavailable the launch below surfaces a clear
-        // "executable doesn't exist" error instead of a silent hang.
+#if PLAYWRIGHT
         void EnsureBrowsersInstalled()
         {
             if (installAttempted) return;
             installAttempted = true;
             try { Playwright.InstallAsync().GetAwaiter().GetResult(); }
-            catch { /* best-effort; launch will report if browsers are still missing */ }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Playwright install: " + ex.Message); }
         }
 
         static IReadOnlyList<string> BuildArgs(BrowserFetchOptions o)
@@ -190,6 +179,7 @@ namespace ZhuaQianDesktopApp.Tools
             }
             return new ViewportSize { Width = 1280, Height = 800 };
         }
+#endif
 
         static string CleanRenderedText(string text)
         {

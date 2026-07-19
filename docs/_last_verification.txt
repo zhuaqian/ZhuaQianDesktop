@@ -1,15 +1,278 @@
 ﻿ZhuaQian Desktop Verification
-Captured: 2026-07-18T13:18:45.3755042+08:00
+Captured: 2026-07-18T15:01:10.6678710+08:00
 Root: C:\Users\本机\Documents\Codex\2026-07-10\c-users-workbuddy-2026-07-10\src
-ExitCode: 1
+ExitCode: 0
 
 Architecture checks passed.
 Package checks passed.
 Compiling unit tests ...
-Tools\BrowserAgentClient.cs(24,21): error CS0012: ���͡�System.IDisposable����δ�����õĳ����ж��塣������ӶԳ��򼯡�netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51�������á�
-packages\Microsoft.Playwright.1.48.0\lib\netstandard2.0\Microsoft.Playwright.dll: (��ǰһ��������صķ���λ��)
-Tools\BrowserAgentClient.cs(25,18): error CS0012: ���͡�System.IAsyncDisposable����δ�����õĳ����ж��塣������ӶԳ��򼯡�Microsoft.Bcl.AsyncInterfaces, Version=6.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51�������á�
-packages\Microsoft.Playwright.1.48.0\lib\netstandard2.0\Microsoft.Playwright.dll: (��ǰһ��������صķ���λ��)
-Tools\BrowserAgentClient.cs(245,29): error CS0012: ���͡�System.Object����δ�����õĳ����ж��塣������ӶԳ��򼯡�netstandard, Version=2.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51�������á�
-packages\Microsoft.Playwright.1.48.0\lib\netstandard2.0\Microsoft.Playwright.dll: (��ǰһ��������صķ���λ��)
-FAILED: Test compilation failed
+Running unit tests ...
+ZhuaQian Desktop module tests
+================================
+[Redactor]
+[Chunker]
+[OfficeExporter]
+[PermissionGate]
+[ConfigStore]
+[OutputsHub]
+[FolderOrganizer]
+[PluginRunner]
+[AgentPlanParser]
+[AgentPlanCommandMapper]
+[AgentPipeline]
+[AgentPipeline.Async]
+[StreamingBridge]
+[WebSearchClient]
+[WebPageReportBuilder]
+[ProcessSnapshotCollector]
+[SystemDiagnostics]
+[Smoke]
+[PluginManifest]
+[HookRegistry]
+[WorkspaceScanSummary]
+  [WorkspaceScanSummary] failures=0
+[CommandRunRecorder]
+  [CommandRunRecorder] failures=0
+[CodingAgentSession]
+  [CodingAgentSession] failures=0
+[OfficeTemplateLibrary]
+[OfficeTemplateExecutor]
+[BrowserRenderClient]
+  invalid url rejected: Invalid URL.
+  FetchOne safe on invalid url
+  defaults ok (headless=True, timeout=30000)
+  PASS: invalid host rejected
+  PASS: error mentions invalid host
+  PASS: missing command rejected
+  PASS: error mentions command
+  PASS: unknown action rejected
+  PASS: error mentions unknown action
+  PASS: CSharp language detected, got CSharp
+  PASS: build tool detected (build.ps1)
+  PASS: build command references build.ps1, got: powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
+  PASS: test tool detected (run-tests.ps1)
+  PASS: test command references run-tests.ps1, got: powershell -NoProfile -ExecutionPolicy Bypass -File .\src\scripts\run-tests.ps1
+  PASS: framework detected, got: .NET v4.8
+  PASS: entry file is Program.cs, got: src\Program.cs
+  PASS: package file is .csproj, got: ZhuaQianDesktop.csproj
+  PASS: JS language detected, got JavaScript
+  PASS: build tool detected (npm run build)
+  PASS: build command is npm-based, got: npm run build
+  PASS: test tool detected (npm test)
+  PASS: test command is npm test, got: npm test
+  PASS: framework detected, got: Node + React
+  PASS: Python language detected, got Python
+  PASS: entry is main.py, got: main.py
+  PASS: package is pyproject.toml, got: pyproject.toml
+  PASS: empty dir => Unknown language, got Unknown
+  PASS: empty dir has no build tool
+  PASS: empty dir has no test tool
+  PASS: empty dir has notes
+  PASS: nonexistent dir => Unknown
+  PASS: nonexistent dir has note
+  PASS: create succeeds
+  PASS: file written to disk
+  PASS: diff has +++ header: --- a/newfile.txt
++++ b/newfile.txt
+@@ -0,0 +1,3 @@
++hello
++world
++
+  PASS: diff has +hello line: --- a/newfile.txt
++++ b/newfile.txt
+@@ -0,0 +1,3 @@
++hello
++world
++
+  PASS: modify succeeds
+  PASS: file content updated
+  PASS: diff has -old: --- a/modify.cs
++++ b/modify.cs
+@@ -2,1 +2,1 @@
+-old
++new
+  PASS: diff has +new: --- a/modify.cs
++++ b/modify.cs
+@@ -2,1 +2,1 @@
+-old
++new
+  PASS: backup created for rollback
+  PASS: delete succeeds
+  PASS: file removed from disk
+  PASS: backup kept for delete rollback
+  PASS: path traversal rejected
+  PASS: error message mentions escape: file path escapes project root (..): ../escape.txt
+  PASS: permission denied blocks write
+  PASS: error mentions permission: permission denied for permFileWrite on denied.txt
+  PASS: file NOT written
+  PASS: dry-run succeeds
+  PASS: result marked as dry-run
+  PASS: dry-run does NOT write to disk
+  PASS: dry-run still produces diff: --- a/dryrun.txt
++++ b/dryrun.txt
+@@ -0,0 +1,2 @@
++preview
++
+  PASS: modify before rollback
+  PASS: content changed
+  PASS: rollback returns true
+  PASS: content restored after rollback
+  PASS: precondition mismatch blocks write
+  PASS: error mentions precondition: precondition mismatch: file changed since scan (precond.txt)
+  PASS: file unchanged
+  PASS: diff has -b: --- a/test.txt
++++ b/test.txt
+@@ -2,1 +2,1 @@
+-b
++B
+  PASS: diff has +B: --- a/test.txt
++++ b/test.txt
+@@ -2,1 +2,1 @@
+-b
++B
+  PASS: diff has hunk header: --- a/test.txt
++++ b/test.txt
+@@ -2,1 +2,1 @@
+-b
++B
+  PASS: identical content => empty diff, got: 
+  PASS: one error parsed, got 1
+  PASS: file is Program.cs, got: Program.cs
+  PASS: line is 10, got: 10
+  PASS: column is 5, got: 5
+  PASS: code is CS0246, got: CS0246
+  PASS: severity is Error
+  PASS: message contains Foo
+  PASS: tool is msbuild, got: msbuild
+  PASS: one warning parsed, got 1
+  PASS: line is 42
+  PASS: severity is Warning
+  PASS: code is CS0168
+  PASS: powershell error parsed, got 1
+  PASS: tool is powershell
+  PASS: file contains build.ps1, got: C:\build.ps1
+  PASS: line is 15, got: 15
+  PASS: message captured: +     Write-Hosst 'hi'
+  PASS: python errors parsed, got 3
+  PASS: python code contains Error, got: NameError
+  PASS: python message captured: name 'foo' is not defined
+  PASS: found a python error record
+  PASS: go error parsed, got 1
+  PASS: go file is main.go, got: main.go
+  PASS: go line is 10
+  PASS: go message contains undefined: undefined: Foo
+  PASS: rust error parsed, got 1
+  PASS: rust code is E0309, got: E0309
+  PASS: rust file is main.rs, got: src/main.rs
+  PASS: rust line is 10, got: 10
+  PASS: generic error parsed, got 1
+  PASS: severity is Error
+  PASS: message captured: something went wrong here
+  PASS: empty input => 0 errors, got 0
+  PASS: markdown shows error count: ## Parsed Errors (1 errors, 1 warnings)
+
+- error Program.cs:1:1 [CS1001]: test error
+- warning Program.cs:2:1 [CS1002]: test warn
+  PASS: markdown lists CS1001: ## Parsed Errors (1 errors, 1 warnings)
+
+- error Program.cs:1:1 [CS1001]: test error
+- warning Program.cs:2:1 [CS1002]: test warn
+  PASS: pass on first try => Passed, got Passed
+  PASS: 1 iteration, got 1
+  PASS: no patches applied
+  PASS: 1 build result
+  PASS: fix then pass => Passed, got Passed
+  PASS: 2 iterations, got 2
+  PASS: 1 patch applied
+  PASS: patch succeeded
+  PASS: file content updated by patch
+  PASS: no fix => CannotFix, got CannotFix
+  PASS: stop reason mentions no patch: fix strategy returned no patches for 1 error(s)
+  PASS: non-convergent => CannotFix, got CannotFix
+  PASS: stop reason mentions non-convergent: non-convergent: same errors as previous iteration
+  PASS: stopped at iteration 2, got 2
+  PASS: exhausted => Exhausted, got Exhausted
+  PASS: ran 3 iterations (MaxIterations), got 3
+  PASS: one patch suggested, got 1
+  PASS: patch applied
+  PASS: semicolon added: using System;
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("hi");
+    }
+}
+
+  PASS: one using patch suggested, got 1
+  PASS: using patch applied
+  PASS: using System.IO added: using System.IO;
+class Program
+{
+    static void Main()
+    {
+        var f = File.ReadAllText("x");
+    }
+}
+
+  PASS: 3 status entries, got 3
+  PASS: entry 0 is modified
+  PASS: entry 0 path, got: src/Program.cs
+  PASS: entry 1 is new
+  PASS: entry 2 path
+  PASS: message type is fix for source changes, got: fix(src): update 2 source files
+  PASS: message scope is src, got: fix(src): update 2 source files
+  PASS: message has subject, got: fix(src): update 2 source files
+  PASS: message type is docs for doc-only changes, got: docs(docs): update 2 docs
+  PASS: message scope is docs, got: docs(docs): update 2 docs
+  PASS: diff has -old: diff --git a/file b/file
+@@ -1,1 +1,1 @@
+-old
++new
+
+  PASS: diff has +new: diff --git a/file b/file
+@@ -1,1 +1,1 @@
+-old
++new
+
+  PASS: create branch succeeds
+  PASS: called git checkout -b: git checkout -b fix/typo
+  PASS: denied => empty status
+  PASS: recorder never called when denied
+  PASS: export patch succeeds
+  PASS: patch file written
+  PASS: patch file has diff content
+  PASS: invalid branch name rejected
+  PASS: recorder not called for invalid name
+  PASS: loop status Passed, got Passed
+  PASS: phase Done, got Done
+  PASS: profile detected CSharp
+  PASS: build-fix report present
+  PASS: 2 iterations, got 2
+  PASS: at least 1 patch applied
+  PASS: semicolon added to source: using System;
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("hello");
+    }
+}
+
+  PASS: commit message suggested
+  PASS: git summary present
+  PASS: status CannotFix, got CannotFix
+  PASS: phase Done
+  PASS: no patches applied
+  PASS: review notes mention manual review: Loop ran 1 iteration(s) and finished with status: CannotFix.
+Stop reason: fix strategy returned no patches for 1 error(s)
+No patches were applied.
+The loop could not fix all errors automatically. Manual review needed.
+  PASS: markdown has title
+  PASS: markdown has goal
+  PASS: markdown has status
+  PASS: markdown has project section
+  PASS: markdown has build info
+================================
+Passed: 219  Failed: 0
+ALL TESTS PASSED

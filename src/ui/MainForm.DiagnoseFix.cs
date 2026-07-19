@@ -39,7 +39,7 @@ namespace ZhuaQianDesktopApp
             }
         }
 
-        async void ExecuteDiagnoseFix(string text)
+        void ExecuteDiagnoseFix(string text)
         {
             string root = ExtractNaturalTarget(text, new string[] {
                 "诊断修复", "诊断并修复", "检查并修复", "分析并修复",
@@ -64,15 +64,10 @@ namespace ZhuaQianDesktopApp
                 }
             }
 
-            await ExecuteDiagnoseFixForRootAsync(root, text);
+            ExecuteDiagnoseFixForRoot(root, text);
         }
 
-        async void ExecuteDiagnoseFixForRoot(string root, string goal)
-        {
-            await ExecuteDiagnoseFixForRootAsync(root, goal);
-        }
-
-        async Task ExecuteDiagnoseFixForRootAsync(string root, string goal)
+        void ExecuteDiagnoseFixForRoot(string root, string goal)
         {
             if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
             {
@@ -94,7 +89,7 @@ namespace ZhuaQianDesktopApp
 
             var fixGate = PermissionGate.FromJson(permGate.ToJson());
             fixGate.Set("permFileWrite", PermissionLevel.Ask);
-            var pipeline = agentPipelineFactory.Create(fixGate, pluginDir, allowAdvancedPlugins);
+            var pipeline = agentPipelineFactory.Create(fixGate, pluginDir, allowAdvancedPlugins, root);
             pipeline.RequestApproval = approvalCommand => ShowApprovalCard(
                 "DiagnoseFix",
                 Tr("Confirm diagnose and fix", "确认诊断修复", "確認診斷修復"),
@@ -113,7 +108,7 @@ namespace ZhuaQianDesktopApp
             var fixCommand = new AgentCommand("DiagnoseFix", "permFileWrite", currentTaskId, root,
                 "Diagnose & Fix: " + root, parameters);
 
-            CommandResult result = await Task.Run(() => pipeline.Run(fixCommand));
+            CommandResult result = pipeline.Run(fixCommand);
             if (IsDisposed || Disposing) return;
 
             if (result.Status == CommandStatus.Success)
@@ -167,7 +162,7 @@ namespace ZhuaQianDesktopApp
                 parameters["action"] = "export-patch";
                 parameters["name"] = Path.GetFileNameWithoutExtension(patchPath);
                 var cmd = new AgentCommand("GitWorkflow", "permCommandRun", currentTaskId, root, "Export patch", parameters);
-                var pipeline = agentPipelineFactory.Create(permGate, pluginDir, allowAdvancedPlugins);
+                var pipeline = agentPipelineFactory.Create(permGate, pluginDir, allowAdvancedPlugins, root);
                 var result = pipeline.Run(cmd);
                 if (result.Status == CommandStatus.Success && !string.IsNullOrEmpty(result.ResultPath) && File.Exists(result.ResultPath))
                     File.Copy(result.ResultPath, patchPath, true);
@@ -188,7 +183,7 @@ namespace ZhuaQianDesktopApp
                 parameters["action"] = "commit";
                 parameters["message"] = message;
                 var cmd = new AgentCommand("GitWorkflow", "permCommandRun", currentTaskId, root, "Commit: " + message, parameters);
-                var pipeline = agentPipelineFactory.Create(permGate, pluginDir, allowAdvancedPlugins);
+                var pipeline = agentPipelineFactory.Create(permGate, pluginDir, allowAdvancedPlugins, root);
                 var result = pipeline.Run(cmd);
                 if (result.Status != CommandStatus.Success)
                     MessageBox.Show(this, result.ErrorMessage ?? Tr("Commit failed.", "提交失败。", "提交失敗。"), Tr("Git Commit", "Git 提交", "Git 提交"));
@@ -209,7 +204,7 @@ namespace ZhuaQianDesktopApp
                 parameters["patchFile"] = "manual.patch";
                 parameters["maxIterations"] = "3";
                 var cmd = new AgentCommand("DiagnoseFix", "permFileWrite", currentTaskId, root, "Apply patch and rerun", parameters);
-                var pipeline = agentPipelineFactory.Create(permGate, pluginDir, allowAdvancedPlugins);
+                var pipeline = agentPipelineFactory.Create(permGate, pluginDir, allowAdvancedPlugins, root);
                 var result = pipeline.Run(cmd);
                 return result.Status == CommandStatus.Success
                     ? (result.OutputText ?? "")

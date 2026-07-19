@@ -17,8 +17,15 @@ $maxAllowedToolNewExceptions = [int]$budget.maxAllowedToolNewExceptions
 $failures = New-Object System.Collections.Generic.List[string]
 $mainLines = 0
 
+# Counting method MUST match the budget semantics in docs\_line_budget.json:
+# we count NON-BLANK lines (trimmed empty lines excluded), NOT raw line count.
+# This is deliberate: the budget number (maxMainLines) is maintained by humans as a
+# non-blank count (e.g. via `grep -cve '^[[:space:]]*$'`), so the script's machine
+# count must use the same definition. Relying on `Measure-Object -Line` is fragile
+# because its behavior across PowerShell versions / file encodings is not guaranteed
+# to exclude blank lines. See docs\_line_budget.json "countingMethod".
 if (Test-Path $main) {
-    $mainLines = (Get-Content -LiteralPath $main | Measure-Object -Line).Lines
+    $mainLines = (Get-Content -LiteralPath $main | Where-Object { $_.Trim() -ne "" } | Measure-Object).Count
     if ($mainLines -gt $maxMainLines) {
         $failures.Add("ZhuaQianDesktop.cs grew to $mainLines lines; budget is $maxMainLines. Move new behavior into modules/executors.")
     }
@@ -27,7 +34,7 @@ if (Test-Path $main) {
 Get-ChildItem -Path $Root -Recurse -Filter *.cs |
     Where-Object { $_.FullName -notmatch "\\tests\\" -and $_.FullName -ne $main } |
     ForEach-Object {
-        $lines = (Get-Content -LiteralPath $_.FullName | Measure-Object -Line).Lines
+        $lines = (Get-Content -LiteralPath $_.FullName | Where-Object { $_.Trim() -ne "" } | Measure-Object).Count
         if ($lines -gt $maxOtherCsLines) {
             $rel = $_.FullName.Substring($Root.Length + 1)
             $failures.Add("$rel has $lines lines; budget is $maxOtherCsLines.")

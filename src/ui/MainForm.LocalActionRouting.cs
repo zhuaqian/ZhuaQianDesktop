@@ -54,8 +54,19 @@ namespace ZhuaQianDesktopApp
                     "  /hotkey ctrl+v\r\n" +
                     "  /key enter\r\n" +
                     "  /click 300 450\r\n" +
-                    "  /wait 1000",
+                    "  /wait 1000\r\n" +
+                    "  /remote check\r\n" +
+                    "  /remote run host=user@example.com command=\"pwd && ls\"\r\n" +
+                    "  /remote pull host=user@example.com remotePath=/var/log/app.log localPath=C:\\\\Temp\\\\app.log\r\n" +
+                    "  /remote push host=user@example.com localPath=C:\\\\Temp\\\\app.txt remotePath=/tmp/app.txt",
                     Color.FromArgb(0, 130, 80));
+                input.Clear();
+                return true;
+            }
+
+            if (verb == "remote" || verb == "ssh" || verb == "server")
+            {
+                RunRemoteCommand(parsed);
                 input.Clear();
                 return true;
             }
@@ -156,6 +167,16 @@ namespace ZhuaQianDesktopApp
                 }
                 pendingParts.Insert(0, NewTextPart("[Local computer diagnostics]\r\n" + report));
                 return false;
+            }
+
+            if (LooksLikeRemoteCheckRequest(lower))
+            {
+                var parsed = new Tools.ParsedCommand();
+                parsed.Verb = "remote";
+                parsed.Args.Add("check");
+                RunRemoteCommand(parsed);
+                input.Clear();
+                return true;
             }
 
             if (LooksLikeUrlAnalysisRequest(text, lower))
@@ -364,6 +385,14 @@ namespace ZhuaQianDesktopApp
                 "分析电脑", "分析電腦", "诊断电脑", "診斷電腦", "电脑很卡", "電腦很卡", "系统诊断", "系統診斷",
                 "电脑问题", "電腦問題", "本机诊断", "本機診斷", "computer diagnostic", "diagnose computer",
                 "analyze my computer", "slow computer", "system diagnostic", "what is wrong with my pc");
+        }
+
+        bool LooksLikeRemoteCheckRequest(string lower)
+        {
+            return ContainsAny(lower,
+                "检查ssh", "检查 ssh", "检查远程工具", "检查服务器工具", "远程工具", "服务器工具", "云主机工具",
+                "檢查ssh", "檢查 ssh", "遠端工具", "伺服器工具", "雲主機工具",
+                "check ssh", "remote tools", "server tools", "cloud host tools");
         }
 
         bool LooksLikePluginRequest(string lower)
@@ -589,6 +618,90 @@ namespace ZhuaQianDesktopApp
             if (!string.IsNullOrEmpty(secondFlag) && parsed.Flags.ContainsKey(secondFlag)) return parsed.Flags[secondFlag];
             if (!string.IsNullOrEmpty(thirdFlag) && parsed.Flags.ContainsKey(thirdFlag)) return parsed.Flags[thirdFlag];
             return string.Join(" ", parsed.Args.ToArray()).Trim();
+        }
+
+        void RunRemoteCommand(Tools.ParsedCommand parsed)
+        {
+            string action = parsed.Args.Count > 0 ? parsed.Args[0].ToLowerInvariant() : "";
+            if (parsed.Flags.ContainsKey("action")) action = parsed.Flags["action"].ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(action)) action = "check";
+
+            var parameters = new Dictionary<string, object>();
+            parameters["action"] = action;
+            foreach (var kv in parsed.Flags) parameters[kv.Key] = kv.Value;
+
+            string host = parsed.Flags.ContainsKey("host") ? parsed.Flags["host"] : "";
+            string remoteCommand = parsed.Flags.ContainsKey("command") ? parsed.Flags["command"] : "";
+            string localPath = parsed.Flags.ContainsKey("localPath") ? parsed.Flags["localPath"] : "";
+            string remotePath = parsed.Flags.ContainsKey("remotePath") ? parsed.Flags["remotePath"] : "";
+
+            if ((action == "run" || action == "pull" || action == "push") && string.IsNullOrWhiteSpace(host))
+            {
+                AppendChat("Error", Tr("Missing host. Example: /remote run host=user@example.com command=\"pwd\"",
+                                       "缺少 host。示例：/remote run host=user@example.com command=\"pwd\"",
+                                       "缺少 host。範例：/remote run host=user@example.com command=\"pwd\""), Color.FromArgb(190, 40, 40));
+                return;
+            }
+            if (action == "run" && string.IsNullOrWhiteSpace(remoteCommand))
+            {
+                AppendChat("Error", Tr("Missing command. Example: /remote run host=user@example.com command=\"pwd && ls\"",
+                                       "缺少 command。示例：/remote run host=user@example.com command=\"pwd && ls\"",
+                                       "缺少 command。範例：/remote run host=user@example.com command=\"pwd && ls\""), Color.FromArgb(190, 40, 40));
+                return;
+            }
+            if (action == "pull" && string.IsNullOrWhiteSpace(remotePath))
+            {
+                AppendChat("Error", Tr("Missing remotePath for pull.",
+                                       "pull 缺少 remotePath。",
+                                       "pull 缺少 remotePath。"), Color.FromArgb(190, 40, 40));
+                return;
+            }
+            if (action == "push" && (string.IsNullOrWhiteSpace(localPath) || string.IsNullOrWhiteSpace(remotePath)))
+            {
+                AppendChat("Error", Tr("Push requires localPath and remotePath.",
+                                       "push 需要 localPath 和 remotePath。",
+                                       "push 需要 localPath 和 remotePath。"), Color.FromArgb(190, 40, 40));
+                return;
+            }
+
+            string target = string.IsNullOrWhiteSpace(host) ? "local OpenSSH tools" : host;
+            string summary = "Remote " + action + (string.IsNullOrWhiteSpace(remoteCommand) ? "" : ": " + remoteCommand);
+            if (!EnsurePermission(Tr("Cloud/network upload", "云端/网络上传", "雲端/網路上傳"), permNetworkUpload, true, "Remote host")) return;
+
+            var remoteGate = PermissionGate.FromJson(permGate.ToJson());
+            remoteGate.Set("permNetworkUpload", PermissionLevel.Ask);
+            var pipeline = agentPipelineFactory.Create(remoteGate, pluginDir, allowAdvancedPlugins);
+            pipeline.RequestApproval = approvalCommand => ShowApprovalCard(
+                "RemoteHost",
+                Tr("Confirm remote host action", "确认远程主机动作", "確認遠端主機動作"),
+                Tr("Execute", "执行", "執行"),
+                Tr("Cloud/network upload", "云端/网络上传", "雲端/網路上傳"),
+                target,
+                Tr("This action connects to a server/cloud host through local OpenSSH. Passwords and private keys are not stored by ZhuaQian.",
+                   "该动作会通过本机 OpenSSH 连接服务器/云主机。抓钱不会保存密码或私钥。",
+                   "該動作會透過本機 OpenSSH 連線伺服器/雲主機。抓錢不會儲存密碼或私鑰。"),
+                summary,
+                "Action: " + action + "\r\nHost: " + host + "\r\nCommand: " + remoteCommand + "\r\nLocalPath: " + localPath + "\r\nRemotePath: " + remotePath,
+                "");
+
+            var command = new AgentCommand("RemoteHost", "permNetworkUpload", currentTaskId, target, summary, parameters);
+            var result = pipeline.Run(command);
+            if (result.Status == CommandStatus.Success)
+            {
+                LogAction("RemoteHost", summary + " -> " + target);
+                RecordAction("RemoteHost", "success", summary + " -> " + target, result.ResultPath ?? "");
+                AppendChat("ZhuaQian", result.OutputText ?? "Remote action completed.", Color.FromArgb(0, 130, 80));
+            }
+            else if (result.Status == CommandStatus.Cancelled)
+            {
+                RecordAction("RemoteHost", "cancelled", summary + " -> " + target, "");
+            }
+            else
+            {
+                SetCurrentTaskStatus("failed", "Remote host action failed", true);
+                RecordAction("RemoteHost", "failed", result.ErrorMessage, "");
+                MessageBox.Show(this, result.ErrorMessage, "Remote host");
+            }
         }
 
         void RunComputerControl(Dictionary<string, object> parameters, string target, string summary)

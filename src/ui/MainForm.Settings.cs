@@ -300,7 +300,8 @@ namespace ZhuaQianDesktopApp
                     providerManager.ZhipuKey = dlg.ZhipuKey;
 
                     SaveConfig();
-                    if (modelLabel != null) modelLabel.Text = CurrentModelLabel();
+                    PopulateTopModelCombo();
+                    RefreshTopModelSwitcher();
                     ApplyHotkeyRegistration();
                     if (!string.Equals(oldLanguage, uiLanguage, StringComparison.OrdinalIgnoreCase))
                         RebuildUiForLanguage();
