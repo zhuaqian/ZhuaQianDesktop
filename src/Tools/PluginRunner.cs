@@ -102,14 +102,44 @@ namespace ZhuaQianDesktopApp.Tools
                     var stderr = new StringBuilder();
                     proc.OutputDataReceived += (s, e) => { if (e.Data != null) stdout.AppendLine(e.Data); };
                     proc.ErrorDataReceived += (s, e) => { if (e.Data != null) stderr.AppendLine(e.Data); };
-                    proc.Start();
+
+                    // Process.Start() builds StandardInput as
+                    //   new StreamWriter(pipe, Console.InputEncoding) { AutoFlush = true }
+                    // and the AutoFlush=true setter immediately flushes, which writes
+                    // the encoding's preamble (BOM) onto the pipe BEFORE we get to
+                    // write anything. When the host console is UTF-8 (e.g. pwsh on CI,
+                    // codepage 65001) that preamble is a U+FEFF BOM, so the plugin reads
+                    // "\uFEFFhello" instead of "hello". Temporarily swap in a no-BOM
+                    // UTF-8 input encoding across Start() so the preamble is empty.
+                    // Guarded: a GUI process without an attached console throws on the
+                    // setter, and its OEM codepage has no preamble anyway, so we skip.
+                    Encoding prevInputEncoding = null;
                     if (!string.IsNullOrEmpty(stdin))
                     {
-                        // Write raw UTF-8 WITHOUT a byte-order mark straight to the
-                        // pipe, and close the pipe directly. Going through the
-                        // StandardInput StreamWriter (including its Close/Flush) can
-                        // emit a BOM that the plugin reads as a spurious leading
-                        // U+FEFF (e.g. "\uFEFFhello" instead of "hello").
+                        try
+                        {
+                            if (Console.InputEncoding.GetPreamble().Length > 0)
+                            {
+                                prevInputEncoding = Console.InputEncoding;
+                                Console.InputEncoding = new UTF8Encoding(false);
+                            }
+                        }
+                        catch (Exception _ex) { System.Diagnostics.Debug.WriteLine("PluginRunner input-encoding override skipped: " + _ex.Message); }
+                    }
+
+                    proc.Start();
+
+                    if (prevInputEncoding != null)
+                    {
+                        try { Console.InputEncoding = prevInputEncoding; }
+                        catch (Exception _ex) { System.Diagnostics.Debug.WriteLine("PluginRunner input-encoding restore failed: " + _ex.Message); }
+                    }
+
+                    if (!string.IsNullOrEmpty(stdin))
+                    {
+                        // Belt-and-suspenders: write raw UTF-8 WITHOUT a BOM straight to
+                        // the pipe and close it directly, bypassing the StreamWriter's
+                        // own encoding path entirely.
                         Stream stdinStream = proc.StandardInput.BaseStream;
                         byte[] stdinBytes = new UTF8Encoding(false).GetBytes(stdin);
                         stdinStream.Write(stdinBytes, 0, stdinBytes.Length);
