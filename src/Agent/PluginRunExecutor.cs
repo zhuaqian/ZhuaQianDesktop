@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using ZhuaQianDesktopApp.Plugins;
 using ZhuaQianDesktopApp.Tools;
 
 namespace ZhuaQianDesktopApp.Agent
@@ -11,6 +13,12 @@ namespace ZhuaQianDesktopApp.Agent
         readonly bool allowAdvancedPlugins;
         readonly int timeoutMs;
         readonly int maxOutputChars;
+
+        // roadmap 1.4: optional trust store (enforces manifest signature at run time)
+        // and per-run capability consent callback. Both default to null = unchanged
+        // behavior (no trust check, no prompt).
+        public PluginTrustStore TrustStore { get; set; }
+        public Func<PluginManifest, bool> CapabilityConfirm { get; set; }
 
         public PluginRunExecutor(string trustedPluginDir, bool allowAdvancedPlugins, int timeoutMs, int maxOutputChars)
             : this(trustedPluginDir, allowAdvancedPlugins, timeoutMs, maxOutputChars, null)
@@ -46,6 +54,18 @@ namespace ZhuaQianDesktopApp.Agent
             if (!string.IsNullOrEmpty(validation))
                 return CommandResult.Failed(validation);
 
+            // roadmap 1.4: when a manifest sits next to the plugin, enforce its
+            // signature (via TrustStore) and ask for per-run capability consent.
+            string manifestPath = FindManifest(path);
+            if (manifestPath != null)
+            {
+                var pres = new PluginManifestParser(TrustStore).ParseFromFile(manifestPath);
+                if (!pres.Success)
+                    return CommandResult.Failed("Plugin manifest rejected: " + string.Join("; ", pres.Errors));
+                if (CapabilityConfirm != null && !CapabilityConfirm(pres.Manifest))
+                    return CommandResult.Failed("Plugin capabilities were not approved by the user.");
+            }
+
             var result = runner.Run(path, arguments, timeoutMs, stdin);
             if (result.TimedOut)
                 return CommandResult.Failed("Plugin timed out after " + (timeoutMs / 1000).ToString() + " seconds.");
@@ -79,6 +99,25 @@ namespace ZhuaQianDesktopApp.Agent
             if (values != null && values.TryGetValue(key, out value) && value != null)
                 return Convert.ToString(value);
             return "";
+        }
+
+        // Locates a manifest beside the plugin: "<plugin>.json" preferred, then a
+        // shared "manifest.json" in the same directory.
+        static string FindManifest(string pluginPath)
+        {
+            if (string.IsNullOrWhiteSpace(pluginPath)) return null;
+            try
+            {
+                string dir = Path.GetDirectoryName(pluginPath);
+                if (string.IsNullOrEmpty(dir)) return null;
+                string baseName = Path.GetFileNameWithoutExtension(pluginPath);
+                string sidecar = Path.Combine(dir, baseName + ".json");
+                if (File.Exists(sidecar)) return sidecar;
+                string shared = Path.Combine(dir, "manifest.json");
+                if (File.Exists(shared)) return shared;
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("PluginRunExecutor.FindManifest: " + ex.Message); }
+            return null;
         }
 
         static string Trim(string text, int maxChars)

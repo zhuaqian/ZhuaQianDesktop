@@ -40,6 +40,7 @@ namespace ZhuaQianDesktopApp.Plugins
         public string Name { get; set; }
         public string Version { get; set; }
         public string Author { get; set; }
+        public string Publisher { get; set; }
         public string Description { get; set; }
 
         // Relative path (from the manifest) to the script/exe that runs the plugin.
@@ -103,9 +104,16 @@ namespace ZhuaQianDesktopApp.Plugins
             "BeforeModelCall", "AfterModelCall", "BeforeCommand", "AfterCommand", "BeforeFileWrite"
         };
 
+        readonly PluginTrustStore trustStore;
+
+        public PluginManifestParser(PluginTrustStore store = null)
+        {
+            this.trustStore = store;
+        }
+
         public PluginManifestParseResult ParseFromFile(string path)
         {
-            try { return ParseFromString(File.ReadAllText(path)); }
+            try { return ParseFromString(File.ReadAllText(path), trustStore); }
             catch (Exception ex)
             {
                 var result = new PluginManifestParseResult();
@@ -116,6 +124,13 @@ namespace ZhuaQianDesktopApp.Plugins
         }
 
         public PluginManifestParseResult ParseFromString(string json)
+        {
+            return ParseFromString(json, trustStore);
+        }
+
+        // Validates the manifest and, when a trust store is supplied and the manifest
+        // carries a signature, verifies the publisher signature (roadmap 1.4).
+        public PluginManifestParseResult ParseFromString(string json, PluginTrustStore store)
         {
             var result = new PluginManifestParseResult();
             if (string.IsNullOrWhiteSpace(json))
@@ -148,6 +163,31 @@ namespace ZhuaQianDesktopApp.Plugins
 
             if (!string.IsNullOrWhiteSpace(m.Entry) && IsPathTraversal(m.Entry))
                 result.Errors.Add("entry path escapes plugin folder");
+
+            // roadmap 1.4: publisher signature verification when present.
+            if (store != null && !string.IsNullOrWhiteSpace(m.Signature))
+            {
+                if (string.IsNullOrWhiteSpace(m.Publisher))
+                {
+                    result.Errors.Add("signed manifest missing publisher");
+                }
+                else
+                {
+                    string pubKey = store.GetPublicKey(m.Publisher);
+                    if (pubKey == null)
+                    {
+                        result.Errors.Add("unknown publisher: " + m.Publisher);
+                    }
+                    else if (!PluginTrust.VerifyManifestJson(json, m.Signature, pubKey))
+                    {
+                        result.Errors.Add("signature verification failed");
+                    }
+                    else
+                    {
+                        m.Trusted = true;
+                    }
+                }
+            }
 
             result.Success = result.Errors.Count == 0;
             return result;

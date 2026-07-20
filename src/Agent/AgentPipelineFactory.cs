@@ -1,5 +1,7 @@
+using System.IO;
 using ZhuaQianDesktopApp.Core;
 using ZhuaQianDesktopApp.Documents;
+using ZhuaQianDesktopApp.Plugins;
 using ZhuaQianDesktopApp.Tools;
 
 namespace ZhuaQianDesktopApp.Agent
@@ -21,20 +23,25 @@ namespace ZhuaQianDesktopApp.Agent
             this.webSearchClient = webSearchClient ?? new WebSearchClient();
         }
 
-        public AgentPipeline Create(PermissionGate permissionGate, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null)
+        public AgentPipeline Create(PermissionGate permissionGate, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null, Func<PluginManifest, bool> capabilityConfirm = null)
         {
             var pipeline = new AgentPipeline(permissionGate, new AuditLog(auditLogPath), outputsHub);
-            RegisterStandardExecutors(pipeline, pluginDir, allowAdvancedPlugins, projectRootOverride);
+            RegisterStandardExecutors(pipeline, pluginDir, allowAdvancedPlugins, projectRootOverride, capabilityConfirm);
             return pipeline;
         }
 
-        public void RegisterStandardExecutors(AgentPipeline pipeline, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null)
+        public void RegisterStandardExecutors(AgentPipeline pipeline, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null, Func<PluginManifest, bool> capabilityConfirm = null)
         {
             pipeline.Register(new ExportFileExecutor(officeExporter));
             pipeline.Register(new WriteFileExecutor());
             pipeline.Register(new OfficeTemplateExecutor(officeExporter));
             pipeline.Register(new OrganizeFolderExecutor(configDir));
-            pipeline.Register(new PluginRunExecutor(pluginDir, allowAdvancedPlugins, 30000, 20000, System.IO.Path.Combine(configDir, "plugin-output")));
+            var pluginTrust = new PluginTrustStore(System.IO.Path.Combine(configDir, "trusted-publishers.json"));
+            pipeline.Register(new PluginRunExecutor(pluginDir, allowAdvancedPlugins, 30000, 20000, System.IO.Path.Combine(configDir, "plugin-output"))
+            {
+                TrustStore = pluginTrust,
+                CapabilityConfirm = capabilityConfirm
+            });
             pipeline.Register(new ProcessManageExecutor());
             pipeline.Register(new ComputerControlExecutor());
             pipeline.Register(new RollbackExecutor(configDir));

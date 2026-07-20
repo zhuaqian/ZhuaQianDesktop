@@ -51,6 +51,11 @@ namespace ZhuaQianDesktopApp.Core
             "permFileRead", "permFileWrite", "permFileMoveDelete", "permPluginRun"
         };
 
+        // Pluggable extra rules (roadmap 2.4 seam). Registered rules can override the
+        // built-in decision; see Check() step 7. Absent by default, so existing
+        // behavior is unchanged.
+        readonly List<IPermissionRule> extraRules = new List<IPermissionRule>();
+
         public void Set(string action, PermissionLevel level)
         {
             perms[action] = level;
@@ -103,6 +108,13 @@ namespace ZhuaQianDesktopApp.Core
             sessionDeny.Clear();
         }
 
+        // Register a pluggable rule (roadmap 2.4). Used by the future policy layer,
+        // sandbox-tier (2.2) and trust-TTL (1.3) rules so policy is data-driven.
+        public void AddRule(IPermissionRule rule)
+        {
+            if (rule != null) extraRules.Add(rule);
+        }
+
         public PermissionDecision Check(string action, string target)
         {
             string t = target ?? "";
@@ -133,6 +145,21 @@ namespace ZhuaQianDesktopApp.Core
             //    escalates Allow -> Ask (never downgrades Deny/Ask).
             if (PermissionGate.FileActions.Contains(action) && decision == PermissionDecision.Allow && !IsWithinAllowedDirectories(t))
                 decision = PermissionDecision.Ask;
+
+            // 7) pluggable extra rules (roadmap 2.4 seam). Deny always wins; an Allow
+            //    rule upgrades an Ask result to Allow (never downgrades a Deny/Allow).
+            //    A rule returning null abstains, leaving the built-in decision.
+            if (extraRules.Count > 0 && decision != PermissionDecision.Deny)
+            {
+                bool anyAllow = false;
+                foreach (var rule in extraRules)
+                {
+                    PermissionDecision? d = rule.Evaluate(action, t);
+                    if (d == PermissionDecision.Deny) { decision = PermissionDecision.Deny; break; }
+                    if (d == PermissionDecision.Allow) anyAllow = true;
+                }
+                if (anyAllow) decision = PermissionDecision.Allow;
+            }
 
             return decision;
         }
