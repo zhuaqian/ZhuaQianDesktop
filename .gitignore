@@ -34,6 +34,9 @@ src/packages/
 .env.*
 secret*.json
 
+# Local agent memory / project notes (not for the public repo)
+.workbuddy/
+
 # Build artifacts (produced by build.ps1 / csc; never commit)
 *.exe
 *.pdb
