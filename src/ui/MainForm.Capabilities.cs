@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using ZhuaQianDesktopApp.Agent;
@@ -189,7 +190,9 @@ namespace ZhuaQianDesktopApp
                 Tr("Write/export files", "写入/导出文件", "寫入/匯出檔案"),
                 path,
                 Tr("This writes a file to your disk.", "这会把文件写入你的磁盘。", "這會把檔案寫入你的磁碟。"),
-                label);
+                label,
+                "",
+                path);
             var cmd = new AgentCommand("WriteFile", "permFileWrite", currentTaskId, path, label, parameters);
             return pipeline.Run(cmd);
         }

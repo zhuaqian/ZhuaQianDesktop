@@ -15,15 +15,23 @@ static class TestSiteGenerator
         return failures;
     }
 
+    static void Assert(bool cond, string msg, ref int fails)
+    {
+        if (!cond) { fails++; Console.WriteLine("  FAIL: " + msg); }
+    }
+
     static int TestParseFenced()
     {
         int fails = 0;
         string reply = "Here is your site:\n```html\n<html><body>Hi</body></html>\n```\n```css\nbody{color:red}\n```\n```js\nconsole.log(1)\n```";
         var files = SiteGenerator.ParseFiles(reply);
-        Assert(files.Count == 3, "three files parsed, got " + files.Count);
-        Assert(files[0].Path == "index.html", "first is index.html, got " + files[0].Path);
-        Assert(files[1].Path == "style.css", "second is style.css");
-        Assert(files[2].Path == "app.js", "third is app.js");
+        Assert(files.Count == 3, "three files parsed, got " + files.Count, ref fails);
+        if (files.Count == 3)
+        {
+            Assert(files[0].Path == "index.html", "first is index.html, got " + files[0].Path, ref fails);
+            Assert(files[1].Path == "style.css", "second is style.css", ref fails);
+            Assert(files[2].Path == "app.js", "third is app.js", ref fails);
+        }
         return fails;
     }
 
@@ -31,7 +39,7 @@ static class TestSiteGenerator
     {
         int fails = 0;
         var files = SiteGenerator.ParseFiles("just some text");
-        Assert(files.Count == 1 && files[0].Path == "index.html", "no-fence falls back to index.html");
+        Assert(files.Count == 1 && files[0].Path == "index.html", "no-fence falls back to index.html", ref fails);
         return fails;
     }
 }

@@ -17,6 +17,11 @@ static class TestWriteFileExecutor
         return failures;
     }
 
+    static void Assert(bool cond, string msg, ref int fails)
+    {
+        if (!cond) { fails++; Console.WriteLine("  FAIL: " + msg); }
+    }
+
     static int TestWritesText()
     {
         int fails = 0;
@@ -28,12 +33,12 @@ static class TestWriteFileExecutor
             var cmd = new AgentCommand("WriteFile", "permFileWrite", "t", path, "save",
                 new Dictionary<string, object> { { "content", "# Hello" } });
             var res = exec.Execute(cmd);
-            Assert(res.Status == CommandStatus.Success, "text write succeeds");
-            Assert(File.Exists(path), "file created");
-            Assert(File.ReadAllText(path) == "# Hello", "content matches");
+            Assert(res.Status == CommandStatus.Success, "text write succeeds", ref fails);
+            Assert(File.Exists(path), "file created", ref fails);
+            Assert(File.ReadAllText(path) == "# Hello", "content matches", ref fails);
         }
-        catch (Exception ex) { Assert(false, "no exception: " + ex.Message); }
-        finally { try { Directory.Delete(dir, true); } catch { } }
+        catch (Exception ex) { Assert(false, "no exception: " + ex.Message, ref fails); }
+        finally { try { Directory.Delete(dir, true); } catch (Exception) { /* best-effort cleanup */ } }
         return fails;
     }
 
@@ -49,11 +54,11 @@ static class TestWriteFileExecutor
             var cmd = new AgentCommand("WriteFile", "permFileWrite", "t", path, "save",
                 new Dictionary<string, object> { { "base64", Convert.ToBase64String(data) } });
             var res = exec.Execute(cmd);
-            Assert(res.Status == CommandStatus.Success, "binary write succeeds");
-            Assert(File.ReadAllBytes(path).Length == 4, "binary bytes written");
+            Assert(res.Status == CommandStatus.Success, "binary write succeeds", ref fails);
+            Assert(File.ReadAllBytes(path).Length == 4, "binary bytes written", ref fails);
         }
-        catch (Exception ex) { Assert(false, "no exception: " + ex.Message); }
-        finally { try { Directory.Delete(dir, true); } catch { } }
+        catch (Exception ex) { Assert(false, "no exception: " + ex.Message, ref fails); }
+        finally { try { Directory.Delete(dir, true); } catch (Exception) { /* best-effort cleanup */ } }
         return fails;
     }
 }

@@ -168,8 +168,8 @@ namespace ZhuaQianDesktopApp.Agent
             {
                 using (var client = new HttpClient())
                 {
-                    client.DefaultRequestHeaders.TryParseAdd("User-Agent", "ZhuaQianDesktop");
-                    if (headers != null) foreach (var h in headers) client.DefaultRequestHeaders.TryParseAdd(h.Key, h.Value);
+                    client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ZhuaQianDesktop");
+                    if (headers != null) foreach (var h in headers) client.DefaultRequestHeaders.TryAddWithoutValidation(h.Key, h.Value);
                     string text = await client.GetStringAsync(url).ConfigureAwait(false);
                     return new JsonResult { Ok = true, Raw = text, Data = Parse(text) };
                 }
@@ -183,8 +183,8 @@ namespace ZhuaQianDesktopApp.Agent
             {
                 using (var client = new HttpClient())
                 {
-                    client.DefaultRequestHeaders.TryParseAdd("User-Agent", "ZhuaQianDesktop");
-                    if (headers != null) foreach (var h in headers) client.DefaultRequestHeaders.TryParseAdd(h.Key, h.Value);
+                    client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ZhuaQianDesktop");
+                    if (headers != null) foreach (var h in headers) client.DefaultRequestHeaders.TryAddWithoutValidation(h.Key, h.Value);
                     var content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
                     var resp = await client.PostAsync(url, content).ConfigureAwait(false);
                     string text = await resp.Content.ReadAsStringAsync().ConfigureAwait(false);

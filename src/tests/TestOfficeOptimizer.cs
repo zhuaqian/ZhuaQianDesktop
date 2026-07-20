@@ -16,6 +16,11 @@ static class TestOfficeOptimizer
         return failures;
     }
 
+    static void Assert(bool cond, string msg, ref int fails)
+    {
+        if (!cond) { fails++; Console.WriteLine("  FAIL: " + msg); }
+    }
+
     static int TestOptimizeDocxRemovesEmptyParagraphs()
     {
         int fails = 0;
@@ -26,7 +31,7 @@ static class TestOfficeOptimizer
         {
             File.WriteAllBytes(path, MakeMinimalDocx());
             var res = OfficeOptimizer.OptimizeDocx(path);
-            Assert(res.RemovedUnits == 2, "two empty paragraphs removed, got " + res.RemovedUnits);
+            Assert(res.RemovedUnits == 2, "two empty paragraphs removed, got " + res.RemovedUnits, ref fails);
 
             using (var ms = new MemoryStream(res.Bytes))
             using (var zip = new ZipArchive(ms, ZipArchiveMode.Read))
@@ -37,13 +42,13 @@ static class TestOfficeOptimizer
                 {
                     r.CopyTo(rm);
                     string xml = Encoding.UTF8.GetString(rm.ToArray());
-                    Assert(!xml.Contains("<w:p/>"), "empty <w:p/> removed from xml");
-                    Assert(xml.Contains("<w:t>Hello</w:t>"), "real content preserved");
+                    Assert(!xml.Contains("<w:p/>"), "empty <w:p/> removed from xml", ref fails);
+                    Assert(xml.Contains("<w:t>Hello</w:t>"), "real content preserved", ref fails);
                 }
             }
         }
-        catch (Exception ex) { Assert(false, "no exception: " + ex.Message); }
-        finally { try { Directory.Delete(dir, true); } catch { } }
+        catch (Exception ex) { Assert(false, "no exception: " + ex.Message, ref fails); }
+        finally { try { Directory.Delete(dir, true); } catch (Exception) { /* best-effort cleanup */ } }
         return fails;
     }
 

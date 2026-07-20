@@ -72,7 +72,7 @@ class TestRunner
         failures += TestModelFixStrategy.RunAll();
         failures += TestAuditLog.RunAll();
         failures += TestPolicyCompiler.RunAll();
-        failures += TestPermissionGate.RunAll();
+        failures += global::TestPermissionGate.RunAll();
         failures += TestPluginTrust.RunAll();
 
         Console.WriteLine("================================");
