@@ -105,7 +105,13 @@ namespace ZhuaQianDesktopApp.Tools
                     proc.Start();
                     if (!string.IsNullOrEmpty(stdin))
                     {
-                        proc.StandardInput.Write(stdin);
+                        // Write raw UTF-8 WITHOUT a byte-order mark. The default
+                        // StandardInput StreamWriter can emit a BOM as the first
+                        // bytes, which the plugin then reads as a spurious leading
+                        // U+FEFF (e.g. "\uFEFFhello" instead of "hello").
+                        byte[] stdinBytes = new UTF8Encoding(false).GetBytes(stdin);
+                        proc.StandardInput.BaseStream.Write(stdinBytes, 0, stdinBytes.Length);
+                        proc.StandardInput.BaseStream.Flush();
                         proc.StandardInput.Close();
                     }
                     proc.BeginOutputReadLine();

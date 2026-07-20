@@ -600,11 +600,9 @@ class TestRunner
             Assert(rollbackResult.Status == CommandStatus.Success, "rollback command succeeds");
             Assert(File.Exists(messyFile), "rollback command restores original file");
 
-            // Use a Python plugin here: it exercises the exact same PluginRunner
-            // stdin plumbing (write + close), but Python's sys.stdin.read() reads
-            // redirected stdin deterministically. Windows PowerShell's -File host
-            // does not reliably expose redirected stdin to the script (both
-            // [Console]::In.ReadToEnd() and $input come back empty on CI).
+            // A tiny Python plugin exercises the PluginRunner stdin plumbing with a
+            // deterministic reader (sys.stdin.read()). This also guards the BOM fix:
+            // the plugin must receive exactly "hello", not "\uFEFFhello".
             string plugin = Path.Combine(dir, "echo.py");
             File.WriteAllText(plugin, "import sys\nsys.stdout.write('plugin:' + sys.stdin.read())", Encoding.UTF8);
             var pluginArgs = new Dictionary<string, object>();
