@@ -52,6 +52,7 @@
 - **落点**：扩展 `src/Plugins/PluginManifest.cs`——在 manifest 里增加 `PublisherSignature`（发布者签名）与 `CapabilityDeclarations`（如 `network`、`fileWrite`、`clipboard`）。UI 上像手机 App 权限提示一样逐条展示。
 - **机制升级**：把现有"人写的 allowlist"升级为"插件自己声明、系统强制核实"——加载插件时校验签名 + 把声明的能力映射到对应的 `PermissionGate` 权限名，未声明的能力一律 Deny。
 - **检查点**：签名验证失败 / 声明越权 → 插件禁止加载，并在日志留痕。这直接复用上一轮 `SecretProtector` 的密钥管理能力做发布者公钥存储。
+- **状态：✅ 代码级已实现（commit `b56dcfd`，2026-07-20）**——`PluginTrust`（RSA SHA-256，XML 密钥格式，零新依赖，规避 .NET 4.8 无 PEM 导入）+ `PluginTrustStore`（可信发布者公钥持久化到 `trusted-publishers.json`）；`PluginManifest` 增 `Publisher`，`PluginManifestParser` 携带签名时强制验签（未知发布者/验签失败 → 解析失败 → 不可加载/运行）；`PluginRunExecutor` 运行时强制 + `CapabilityConfirm` 委托；`MainForm.PluginTrust` partial 提供"手机式"权限提示（声明能力 + 信任状态）。`TestPluginTrust` 覆盖签名轮转/篡改/未知发布者/信任标记。架构预算 PASSED（主文件 3422 未动；各文件 ≤177）。**待本地 `build.ps1`+`run-tests.ps1` 验证**。
 
 ### 近期落地顺序建议
 | 优先级 | 条目 | 理由 |
@@ -93,6 +94,7 @@
 - **需补的原语**：**策略解释层**——用户用自然语言定义（"不要让它未经确认删除任何 >10MB 文件""晚 10 点后不要联网"），由一个专门组件把描述编译成 `PermissionGate` 能执行的规则对象。
 - **落点草图**：新增 `PolicyCompiler`（输入自然语言/半结构化策略 → 输出 `IPermissionRule` 列表），`PermissionGate` 从"硬编码规则"改为"规则列表 + 可热加载"。这是 Agent 领域明显趋势——权限管理本身也在被 Agent 化。
 - **依赖**：2.4 是 2.2（在哪跑）和 1.3（信任期限）的策略来源；三者共享同一套 `IPermissionRule` 抽象最划算。
+- **状态：✅ 规则缝已实现（commit `b56dcfd`，2026-07-20）**——`IPermissionRule` + `DelegatePermissionRule` 接入 `PermissionGate.AddRule`；`Check()` 末步应用规则（Deny 恒胜、Allow 升级 Ask、null 弃权），内置行为不变。`TestPermissionGate` 覆盖覆盖/否决/否决优先。自然语言→规则的"策略解释层"仍为后续项（缝已就位，未来 2.2/1.3 直接 `AddRule`）。架构预算 PASSED。
 
 ---
 
