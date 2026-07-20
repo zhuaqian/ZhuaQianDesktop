@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Web.Script.Serialization;
 using ZhuaQianDesktopApp.Tools;
 
 namespace ZhuaQianDesktopApp.Agent
@@ -115,7 +116,7 @@ namespace ZhuaQianDesktopApp.Agent
         public int MaxSteps = 15;
         public int ObserveSettleMs = 500; // brief wait so the page settles before observing
 
-        public async Task<TaskRunReport> RunAsync(string goal, IEnvironment env, ITaskPolicy policy, CancellationToken token = default(CancellationToken))
+        public async Task<TaskRunReport> RunAsync(string goal, IEnvironment env, ITaskPolicy policy, CancellationToken token = default(CancellationToken), Func<AgentAction, CancellationToken, Task<ActionOutcome>> actuateOverride = null)
         {
             var report = new TaskRunReport { Goal = goal ?? "" };
             var history = new List<StepRecord>();
@@ -137,13 +138,16 @@ namespace ZhuaQianDesktopApp.Agent
 
                     var rec = new StepRecord { Index = step, Observation = obs, Action = decision.NextAction, Reasoning = decision.Reasoning ?? "" };
 
-                    // ---- GATED PRODUCTION PATH (sketch) ----
-                    // var cmd = new AgentCommand(decision.NextAction.CommandType, "permAutomationInput",
-                    //     taskId, decision.NextAction.Target, decision.NextAction.CommandType, decision.NextAction.Parameters);
-                    // var res = pipeline.Run(cmd); // PermissionGate -> Executor -> AuditLog
-                    // rec.Outcome = ActionOutcome.Done(res.Status == CommandStatus.Success, res.OutputText ?? res.ErrorMessage);
-                    // ---- demo path: call the environment directly ----
-                    rec.Outcome = await env.ActuateAsync(decision.NextAction, token).ConfigureAwait(false);
+                    // ---- Production path: route actuation through the audited
+                    // AgentPipeline (PermissionGate -> Executor -> AuditLog) when a
+                    // gated actuator is supplied; otherwise call the environment
+                    // directly (closed-loop demo path).
+                    ActionOutcome outcome;
+                    if (actuateOverride != null)
+                        outcome = await actuateOverride(decision.NextAction, token).ConfigureAwait(false);
+                    else
+                        outcome = await env.ActuateAsync(decision.NextAction, token).ConfigureAwait(false);
+                    rec.Outcome = outcome;
 
                     history.Add(rec);
                     if (rec.Outcome.Fatal)
@@ -281,5 +285,201 @@ namespace ZhuaQianDesktopApp.Agent
         {
             return Task.FromResult(fn(obs, history));
         }
+    }
+
+    // ---- LLM-backed policy: the "brain" the task loop was missing ------------
+    // Given the latest observation + step history, it asks a model to return a
+    // structured decision (JSON) naming the next action or declaring done.
+    //
+    // It depends ONLY on a chat function (prompt -> reply text), so it stays
+    // fully decoupled from the concrete provider/UI. The host injects whatever
+    // chat backend it has (providerManager.SendAsync, a streaming bridge, ...).
+    public sealed class LlmTaskPolicy : ITaskPolicy
+    {
+        readonly Func<string, CancellationToken, Task<string>> chat;
+        readonly string goal;
+        readonly string systemPrompt;
+        readonly bool strict;
+        readonly JavaScriptSerializer serializer = new JavaScriptSerializer { MaxJsonLength = 1 << 20 };
+
+        public LlmTaskPolicy(Func<string, CancellationToken, Task<string>> chat, string goal = null, string systemPrompt = null, bool strict = false)
+        {
+            this.chat = chat ?? throw new ArgumentNullException(nameof(chat));
+            this.goal = goal ?? "";
+            this.systemPrompt = systemPrompt ?? DefaultSystemPrompt();
+            this.strict = strict;
+        }
+
+        public async Task<PolicyDecision> DecideAsync(Observation obs, List<StepRecord> history, CancellationToken token)
+        {
+            string reply = await chat(BuildPrompt(obs, history), token).ConfigureAwait(false);
+            return ParseDecision(reply, history);
+        }
+
+        string BuildPrompt(Observation obs, List<StepRecord> history)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine(systemPrompt);
+            sb.AppendLine();
+            sb.AppendLine("GOAL: " + (string.IsNullOrWhiteSpace(goal) ? "(none stated)" : goal));
+            sb.AppendLine();
+            sb.AppendLine("CURRENT STATE:");
+            sb.AppendLine("  url: " + (obs != null ? obs.Url : ""));
+            sb.AppendLine("  title: " + (obs != null ? obs.Title : ""));
+            sb.AppendLine("  screenshot: " + (obs != null ? obs.ScreenshotPath : ""));
+            string text = obs != null ? obs.Text : "";
+            sb.AppendLine("  text: " + (text != null && text.Length > 1500 ? text.Substring(0, 1500) + "..." : text));
+            sb.AppendLine();
+            sb.AppendLine("RECENT STEPS (most recent last):");
+            if (history != null)
+            {
+                int start = Math.Max(0, history.Count - 8);
+                for (int i = start; i < history.Count; i++)
+                {
+                    var s = history[i];
+                    sb.AppendLine("  #" + (i + 1) + " " + (s.Action != null ? s.Action.CommandType : "?") +
+                        " -> " + (s.Outcome != null ? (s.Outcome.Ok ? "OK" : "FAIL") + " " + s.Outcome.Detail : "") +
+                        " | " + (s.Reasoning ?? ""));
+                }
+            }
+            sb.AppendLine();
+            sb.AppendLine("Respond with a single JSON object and nothing else:");
+            sb.AppendLine("{ \"done\": false, \"reasoning\": \"...\", \"action\": { \"commandType\": \"click\", \"target\": \"#id\", \"parameters\": { \"selector\": \"#id\" } } }");
+            sb.AppendLine("Allowed commandType values: navigate, click, clicktext, fill, type, press, submit, screenshot, wait, dom, text, title, url, start, stop.");
+            sb.AppendLine("Set \"done\": true (with a \"reasoning\") only when the GOAL is fully achieved. Otherwise pick the single next action.");
+            return sb.ToString();
+        }
+
+        PolicyDecision ParseDecision(string reply, List<StepRecord> history)
+        {
+            if (string.IsNullOrWhiteSpace(reply))
+                return Fallback("model returned empty reply");
+
+            // Strip markdown fences / prose; keep the first {...} block.
+            string json = ExtractJson(reply);
+            if (json == null)
+                return Fallback("no JSON object found in model reply");
+
+            object parsed;
+            try { parsed = serializer.DeserializeObject(json); }
+            catch (Exception ex) { return Fallback("JSON parse error: " + ex.Message); }
+
+            var root = parsed as Dictionary<string, object>;
+            if (root == null)
+                return Fallback("root is not a JSON object");
+
+            object doneObj;
+            bool done = root.TryGetValue("done", out doneObj) && doneObj is bool && (bool)doneObj;
+            if (done)
+                return new PolicyDecision { Done = true, Reasoning = Str(root, "reasoning", "policy declared done") };
+
+            object actionObj;
+            var action = root.TryGetValue("action", out actionObj) ? actionObj as Dictionary<string, object> : null;
+            if (action == null)
+                return Fallback("missing 'action' object in decision");
+
+            string commandType = Str(action, "commandType", "");
+            if (string.IsNullOrWhiteSpace(commandType))
+                return Fallback("missing 'commandType' in action");
+
+            var parameters = action.TryGetValue("parameters", out object p) ? p as Dictionary<string, object> : null;
+            var paramCopy = new Dictionary<string, object>(parameters ?? new Dictionary<string, object>());
+
+            return new PolicyDecision
+            {
+                Done = false,
+                Reasoning = Str(root, "reasoning", ""),
+                NextAction = new AgentAction(commandType, Str(action, "target", ""), paramCopy)
+            };
+        }
+
+        PolicyDecision Fallback(string reason)
+        {
+            if (strict) throw new FormatException("LlmTaskPolicy: " + reason);
+            // Non-strict: stay alive with a 1s wait so the loop can re-observe and
+            // recover on the next step (bounded by MaxSteps).
+            return new PolicyDecision
+            {
+                Done = false,
+                Reasoning = "parse fallback: " + reason,
+                NextAction = new AgentAction("wait", "", new Dictionary<string, object> { { "ms", "1000" } })
+            };
+        }
+
+        static string DefaultSystemPrompt()
+        {
+            return "You are the decision-making brain of an autonomous desktop/browser agent. " +
+                   "Each turn you receive the current page/desktop state and the recent action history, " +
+                   "and you must decide the single next action that makes progress toward the GOAL, " +
+                   "or declare the goal complete. Prefer robust selectors (id/css) over positional clicks. " +
+                   "Never invent actions outside the allowed commandType list.";
+        }
+
+        static string ExtractJson(string reply)
+        {
+            int first = reply.IndexOf('{');
+            int last = reply.LastIndexOf('}');
+            if (first < 0 || last <= first) return null;
+            return reply.Substring(first, last - first + 1);
+        }
+
+        static string Str(Dictionary<string, object> d, string key, string def)
+        {
+            if (d == null || !d.TryGetValue(key, out object v) || v == null) return def;
+            return v.ToString();
+        }
+    }
+
+    // ---- Production glue: route task actions through the audited pipeline -----
+    // Wraps an AgentPipeline into the actuate function RunAsync accepts, so every
+    // action is gated by PermissionGate and logged to AuditLog. Browser task verbs
+    // are mapped onto the registered "BrowserControl" executor (sharing the
+    // environment's BrowserAgentClient session when provided); desktop/other verbs
+    // are forwarded verbatim. If a verb has no registered executor the pipeline
+    // returns a non-fatal failure and the loop continues (bounded by MaxSteps).
+    public static class TaskAgentGating
+    {
+        public static Func<AgentAction, CancellationToken, Task<ActionOutcome>> GatedActuator(AgentPipeline pipeline, string taskId, BrowserAgentClient sharedSession = null)
+        {
+            if (pipeline == null) throw new ArgumentNullException(nameof(pipeline));
+            if (sharedSession != null)
+                pipeline.Register(new BrowserControlExecutor(sharedSession, null));
+
+            return (action, token) =>
+            {
+                if (action == null) return Task.FromResult(ActionOutcome.Done(false, "null action", true));
+                string verb = (action.CommandType ?? "").ToLowerInvariant();
+
+                if (IsBrowserVerb(verb))
+                {
+                    var mapped = new Dictionary<string, object>(action.Parameters);
+                    mapped["action"] = verb;
+                    string target = action.Target ?? "";
+                    if (verb == "navigate" && string.IsNullOrEmpty(target)) target = Str(action, "url");
+                    if (verb == "press" && string.IsNullOrEmpty(target)) target = Str(action, "key");
+                    var cmd = new AgentCommand("BrowserControl", "permNetworkUpload", taskId, target, "task:" + verb, mapped);
+                    CommandResult res = pipeline.Run(cmd);
+                    bool ok = res.Status == CommandStatus.Success;
+                    return Task.FromResult(ActionOutcome.Done(ok, res.OutputText ?? res.ErrorMessage ?? "", !ok));
+                }
+
+                // Desktop / generic: forward verbatim (caller must have registered
+                // the matching executor, e.g. "ComputerControl").
+                var cmd2 = new AgentCommand(action.CommandType, "permAutomationInput", taskId, action.Target, "task:" + action.CommandType, action.Parameters);
+                CommandResult res2 = pipeline.Run(cmd2);
+                bool ok2 = res2.Status == CommandStatus.Success;
+                return Task.FromResult(ActionOutcome.Done(ok2, res2.OutputText ?? res2.ErrorMessage ?? "", !ok2));
+            };
+        }
+
+        static bool IsBrowserVerb(string verb)
+        {
+            return verb == "navigate" || verb == "click" || verb == "clicktext" || verb == "fill"
+                || verb == "type" || verb == "press" || verb == "submit" || verb == "screenshot"
+                || verb == "wait" || verb == "dom" || verb == "text" || verb == "title"
+                || verb == "url" || verb == "start" || verb == "stop";
+        }
+
+        static string Str(AgentAction a, string k) { object v; return a.Parameters.TryGetValue(k, out v) && v != null ? v.ToString() : ""; }
     }
 }

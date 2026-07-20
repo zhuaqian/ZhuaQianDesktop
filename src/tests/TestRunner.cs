@@ -65,6 +65,7 @@ class TestRunner
         failures += TestGitWorkflow.RunAll();
         failures += TestCodingLoopSession.RunAll();
         failures += TestDiagnoseFix.RunAll();
+        failures += TestLlmTaskPolicy.RunAll();
 
         Console.WriteLine("================================");
         Console.WriteLine("Passed: " + passed + "  Failed: " + failures);
