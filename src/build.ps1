@@ -6,15 +6,15 @@ param(
 $repoRoot = Split-Path -Parent $PSScriptRoot
 if ([string]::IsNullOrEmpty($Output)) { $Output = Join-Path $repoRoot "dist\ZhuaQianDesktop.exe" }
 
-# Resolve csc.exe across common .NET Framework locations so the same script works
-# on a dev machine and on the GitHub Actions windows-latest runner (instead of a
-# hard-coded path that may not exist on either).
-$cscCandidates = @(
-    "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe",
-    "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\csc.exe"
-)
-$csc = $cscCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-if (-not $csc) { Write-Host "ERROR: csc.exe not found under $env:WINDIR\Microsoft.NET\Framework*\v4.0.30319\" -ForegroundColor Red; exit 1 }
+# Resolve the C# compiler. The legacy in-box .NET Framework compiler only
+# supports C# 5, so we prefer the Roslyn compiler (Visual Studio / Build Tools),
+# which handles this project's C# 6/7 syntax. See resolve-compiler.ps1.
+. (Join-Path $PSScriptRoot "scripts\resolve-compiler.ps1")
+$compiler = Resolve-CSharpCompiler
+if (-not $compiler) { Write-Host "ERROR: no C# compiler found (need Roslyn from Visual Studio / Build Tools)" -ForegroundColor Red; exit 1 }
+if (-not $compiler.Roslyn) { Write-Host "ERROR: only the legacy .NET Framework compiler (C# 5) was found; install Visual Studio / Build Tools (Roslyn) for C# 6/7." -ForegroundColor Red; exit 1 }
+$csc = $compiler.Path
+$libArgs = @($compiler.LibDirs | ForEach-Object { "/lib:$_" })
 # Dynamic enumeration: always in sync with the filesystem and with csproj.
 # Excludes test files and the three legacy/dead duplicate files that would
 # otherwise cause CS0101/CS0262/CS0017 if compiled into the EXE:
@@ -84,6 +84,7 @@ $argsList = @(
     "/out:$Output"
     "/nologo"
     "/langversion:7.3"
+    $libArgs
     "/reference:$($refs -join ';')"
     $src
 )

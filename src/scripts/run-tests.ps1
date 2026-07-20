@@ -49,12 +49,15 @@ try {
         if ($packageCode -ne 0) { throw "Package check failed" }
     }
 
-    $CscCandidates = @(
-        "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe",
-        "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\csc.exe"
-    )
-    $Csc = $CscCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
-    if (-not $Csc) { throw "csc.exe not found" }
+    . (Join-Path $ScriptDir "resolve-compiler.ps1")
+    $compiler = Resolve-CSharpCompiler
+    if (-not $compiler) { throw "No C# compiler found (need the Roslyn compiler from Visual Studio / Build Tools for C# 7.3)" }
+    $Csc = $compiler.Path
+    if (-not $compiler.Roslyn) {
+        throw "Only the legacy .NET Framework compiler was found; it supports C# 5 at most. Install Visual Studio / Build Tools (Roslyn) to compile this project's C# 6/7 syntax."
+    }
+    $LibArgs = @($compiler.LibDirs | ForEach-Object { "/lib:$_" })
+    Write-Step ("Using compiler: " + $Csc) Gray
 
     $Refs = @(
         "System.Windows.Forms.dll",
@@ -127,7 +130,7 @@ try {
     $Out = Join-Path $testDir ("TestRunner-" + [Guid]::NewGuid().ToString("N") + ".exe")
 
     Write-Step "Compiling unit tests ..." Cyan
-    $compileOutput = & $Csc /nologo /langversion:7.3 /target:exe /out:$Out /main:TestRunner /reference:$Refs $compileDefines $Src 2>&1
+    $compileOutput = & $Csc /nologo /langversion:7.3 /target:exe /out:$Out /main:TestRunner $LibArgs /reference:$Refs $compileDefines $Src 2>&1
     foreach ($line in $compileOutput) { Write-Step ([Convert]::ToString($line)) Gray }
     if ($LASTEXITCODE -ne 0) { throw "Test compilation failed" }
 
