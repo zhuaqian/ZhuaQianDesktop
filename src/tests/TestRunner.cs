@@ -613,8 +613,8 @@ class TestRunner
             var pluginCommand = new AgentCommand("RunPlugin", "permPluginRun", "task1", plugin, "Run test plugin", pluginArgs);
             var pluginResult = pipeline.Run(pluginCommand);
 
-            Assert(pluginResult.Status == CommandStatus.Success, "plugin command succeeds");
-            Assert((pluginResult.OutputText ?? "").Contains("plugin:hello"), "plugin output returned");
+            Assert(pluginResult.Status == CommandStatus.Success, "plugin command succeeds; status=" + pluginResult.Status + " err=" + (pluginResult.OutputText ?? ""));
+            Assert((pluginResult.OutputText ?? "").Contains("plugin:hello"), "plugin output returned, got=[" + (pluginResult.OutputText ?? "") + "]");
             Assert(!string.IsNullOrWhiteSpace(pluginResult.ResultPath) && File.Exists(pluginResult.ResultPath), "plugin output persisted as artifact");
             bool pluginOutputRecorded = false;
             foreach (var row in outputs.LoadOutputRows(20))
