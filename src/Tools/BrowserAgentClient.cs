@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using ZhuaQianDesktopApp.Core;
 #if PLAYWRIGHT
 using Microsoft.Playwright;
 #endif
@@ -31,6 +32,7 @@ namespace ZhuaQianDesktopApp.Tools
         public async Task<BrowserActionResult> StartAsync(bool headless = true, string viewport = "1280x800", string userAgent = null, string storageStatePath = null, CancellationToken token = default(CancellationToken))
         {
             if (IsStarted) return BrowserActionResult.Success("already started");
+            string sessionTmp = null;
             try
             {
                 EnsureBrowsersInstalled();
@@ -45,14 +47,27 @@ namespace ZhuaQianDesktopApp.Tools
                 };
                 if (!string.IsNullOrEmpty(userAgent)) ctxOpts.UserAgent = userAgent;
                 if (!string.IsNullOrEmpty(storageStatePath) && File.Exists(storageStatePath))
-                    ctxOpts.StorageStatePath = storageStatePath;
+                {
+                    // Session file is DPAPI-encrypted (see SaveSessionAsync). Decrypt
+                    // to a throwaway temp file Playwright can read, then delete it
+                    // once the context is created so no plaintext session lingers.
+                    string sessionJson = SecretProtector.ReadProtectedFile(storageStatePath);
+                    if (sessionJson != null)
+                    {
+                        sessionTmp = Path.Combine(Path.GetTempPath(), "zq-session-" + Guid.NewGuid().ToString("N") + ".json");
+                        try { File.WriteAllText(sessionTmp, sessionJson); ctxOpts.StorageStatePath = sessionTmp; }
+                        catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient load session temp: " + ex.Message); sessionTmp = null; }
+                    }
+                }
 
                 context = await browser.NewContextAsync(ctxOpts).ConfigureAwait(false);
+                if (sessionTmp != null) { try { File.Delete(sessionTmp); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient cleanup session temp: " + ex.Message); } sessionTmp = null; }
                 page = await context.NewPageAsync().ConfigureAwait(false);
                 return BrowserActionResult.Success("browser started");
             }
             catch (Exception ex)
             {
+                if (sessionTmp != null) { try { File.Delete(sessionTmp); } catch { } }
                 return BrowserActionResult.Fail("start failed: " + ex.Message);
             }
         }
@@ -134,12 +149,25 @@ namespace ZhuaQianDesktopApp.Tools
         public async Task<BrowserActionResult> SaveSessionAsync(string path, CancellationToken token = default(CancellationToken))
         {
             if (!IsStarted || context == null) return BrowserActionResult.Fail("not started");
+            string tmp = null;
             try
             {
-                await context.StorageStateAsync(new BrowserContextStorageStateOptions { Path = path }).ConfigureAwait(false);
-                return BrowserActionResult.Success("session saved: " + path);
+                // The session (cookies + localStorage) is effectively a saved login,
+                // so it must never sit on disk in plaintext. Export to a temp file,
+                // encrypt it with DPAPI (same mechanism as API keys in Settings),
+                // then remove the temp plaintext. Reuses Core.SecretProtector.
+                tmp = Path.Combine(Path.GetTempPath(), "zq-session-out-" + Guid.NewGuid().ToString("N") + ".json");
+                await context.StorageStateAsync(new BrowserContextStorageStateOptions { Path = tmp }).ConfigureAwait(false);
+                string json = File.ReadAllText(tmp);
+                File.Delete(tmp); tmp = null;
+                SecretProtector.ProtectToFile(json, path);
+                return BrowserActionResult.Success("session saved (encrypted): " + path);
             }
-            catch (Exception ex) { return BrowserActionResult.Fail("save session failed: " + ex.Message); }
+            catch (Exception ex)
+            {
+                if (tmp != null) { try { File.Delete(tmp); } catch { } }
+                return BrowserActionResult.Fail("save session failed: " + ex.Message);
+            }
         }
 
         public async Task<BrowserActionResult> NavigateAsync(string url, int timeoutMs = 30000, CancellationToken token = default(CancellationToken))

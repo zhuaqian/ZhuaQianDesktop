@@ -13,9 +13,11 @@ using ZhuaQianDesktopApp.Core;
 namespace ZhuaQianDesktopApp.Agent
 {
     // Multi-host open-source publishing. A publish = create a (public) repo on a
-    // git host via its REST API, then push the local project with git CLI using a
-    // token-in-URL remote (so no credential helper / plaintext file is needed at
-    // push time). All side effects run inside the AgentPipeline single gate.
+    // git host via its REST API, then push the local project with git CLI. The
+    // PAT is embedded only in the one-shot `git push <url>` command line and is
+    // NEVER persisted to .git/config (a token-bearing remote would leak via
+    // `git remote -v`); a credential-free clone URL is left as the local origin.
+    // All side effects run inside the AgentPipeline single gate.
     //
     // Supported hosts (IGitHost abstraction so more can be added later):
     //   github  -> https://api.github.com        (PAT in Authorization: token ...)
@@ -31,6 +33,9 @@ namespace ZhuaQianDesktopApp.Agent
         Task<string> GetUserNameAsync(string token);
         // Create the repo via REST. CloneUrl is best-effort; push proceeds regardless.
         Task<HostCreateResult> CreateRepoAsync(string token, string userName, string repoName, string description, bool isPublic);
+        // Credential-free clone URL for a persistent local remote. The PAT-embedded
+        // push URL must NEVER be persisted to .git/config, so this is what we leave behind.
+        string CleanCloneUrl(string userName, string repoName);
     }
 
     public sealed class HostCreateResult
@@ -69,6 +74,11 @@ namespace ZhuaQianDesktopApp.Agent
             return await GitHostHttp.PostJsonAsync(ApiBase + "/user/repos", headers,
                 new JavaScriptSerializer().Serialize(body), new[] { "clone_url", "ssh_url", "html_url" }).ConfigureAwait(false);
         }
+
+        public string CleanCloneUrl(string userName, string repoName)
+        {
+            return "https://github.com/" + userName + "/" + repoName + ".git";
+        }
     }
 
     public sealed class GiteeHost : IGitHost
@@ -98,6 +108,11 @@ namespace ZhuaQianDesktopApp.Agent
             return await GitHostHttp.PostJsonAsync(ApiBase + "/user/repos", headers,
                 new JavaScriptSerializer().Serialize(body), new[] { "clone_url", "git_url", "html_url" }).ConfigureAwait(false);
         }
+
+        public string CleanCloneUrl(string userName, string repoName)
+        {
+            return "https://gitee.com/" + userName + "/" + repoName + ".git";
+        }
     }
 
     public sealed class GitLabHost : IGitHost
@@ -121,6 +136,11 @@ namespace ZhuaQianDesktopApp.Agent
             var headers = new Dictionary<string, string> { { "PRIVATE-TOKEN", token }, { "User-Agent", "ZhuaQianDesktop" } };
             return await GitHostHttp.PostJsonAsync(ApiBase + "/projects", headers,
                 new JavaScriptSerializer().Serialize(body), new[] { "http_url_to_repo", "ssh_url_to_repo", "web_url" }).ConfigureAwait(false);
+        }
+
+        public string CleanCloneUrl(string userName, string repoName)
+        {
+            return "https://gitlab.com/" + userName + "/" + repoName + ".git";
         }
     }
 
@@ -275,12 +295,22 @@ namespace ZhuaQianDesktopApp.Agent
                     RunGit(localPath, "commit --allow-empty -m \"Initial open-source publish by ZhuaQian\"", out outMsg);
 
                 RunGit(localPath, "branch -M main", out outMsg);
+                // SECURITY: push straight to the PAT-embedded URL. The token lives
+                // only in this process's command line and is NEVER written to
+                // .git/config (a persisted token-bearing remote leaks via `git remote -v`
+                // and any .git share/backup). After the push we leave behind a clean,
+                // credential-free origin so the user can still `git push` later.
+                bool pushed = RunGit(localPath, "push " + pushUrl + " HEAD:refs/heads/main", out outMsg);
+                if (!pushed) pushed = RunGit(localPath, "push " + pushUrl + " HEAD:main", out outMsg);
+                sb.AppendLine("Push: " + MaskUrl(outMsg));
+                string cleanUrl = host.CleanCloneUrl(userName, repoName);
                 RunGit(localPath, "remote remove origin", out outMsg);
-                if (!RunGit(localPath, "remote add origin " + pushUrl, out outMsg))
-                    sb.AppendLine("remote add failed: " + outMsg);
-                if (!RunGit(localPath, "push -u origin main", out outMsg))
-                    RunGit(localPath, "push -u origin HEAD", out outMsg);
-                sb.AppendLine("Push: " + outMsg);
+                if (!string.IsNullOrEmpty(cleanUrl))
+                {
+                    RunGit(localPath, "remote add origin " + cleanUrl, out outMsg);
+                    RunGit(localPath, "fetch origin", out outMsg);
+                    RunGit(localPath, "branch -u origin/main main", out outMsg);
+                }
 
                 return CommandResult.Ok(null, false, null, "PublishRepo", 0, sb.ToString().Trim());
             }
