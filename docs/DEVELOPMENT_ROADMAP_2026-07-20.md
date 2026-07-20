@@ -86,6 +86,7 @@
 - **需补的原语**：哈希链（每条记录带上一条的哈希）+ 可选异地同步。技术上**不需要区块链**——简单的 `hash(prevHash + record)` 链就能达到"事后改了日志能被检测到"。
 - **落点草图**：`Core/AuditLog.cs` 从"追加文本"改为"追加 `[seq, prevHash, payload, hash]`"记录；提供 `VerifyChain()` 自检。异地同步作为可选 sink（复用 2.1 的 `IAuditSink`）。
 - **为什么接上一轮**：这是 `8632b1c` 安全修复的自然下一环——既然已经不把凭证落明文，就该让记录凭证使用情况的日志本身也防篡改。
+- **状态：✅ 代码级已实现（commit `e69876b`，2026-07-20）**——`AuditLog` 每行追加 SHA-256 链哈希 + `VerifyChain()`（返回 `AuditChainResult`，含首个被破坏行号）；`TestAuditLog.cs` 覆盖"写入后完整 / 篡改被检出 / 旧格式行容忍"三场景；架构预算 PASSED（主文件 3422 零改动，AuditLog 206 行 / TestAuditLog 77 行均 <900）。**待用户本地 `build.ps1`+`run-tests.ps1` 真编译验证**。
 
 ### 2.4 自然语言权限策略（而非硬编码 allowlist）
 - **现在的缺口**：权限逻辑是代码里写死的规则（`allowedPrograms`、`allowedToolNews` 等）。每加一条策略就要改代码。
