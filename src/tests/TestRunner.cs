@@ -71,6 +71,7 @@ class TestRunner
         failures += TestOfficeOptimizer.RunAll();
         failures += TestModelFixStrategy.RunAll();
         failures += TestAuditLog.RunAll();
+        failures += TestPolicyCompiler.RunAll();
         failures += TestPermissionGate.RunAll();
         failures += TestPluginTrust.RunAll();
 

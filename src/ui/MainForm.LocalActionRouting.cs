@@ -43,6 +43,21 @@ namespace ZhuaQianDesktopApp
             }
 
             string verb = (parsed.Verb ?? "").ToLowerInvariant();
+            if (verb == "task" || verb == "agent" || verb == "autotask")
+            {
+                string goal = FlagOrArgs(parsed, "goal", "target", "");
+                if (string.IsNullOrWhiteSpace(goal) && parsed.Args.Count > 0) goal = string.Join(" ", parsed.Args.ToArray()).Trim();
+                if (string.IsNullOrWhiteSpace(goal))
+                {
+                    AppendChat("Error", Tr("Missing goal. Example: /task <your goal>", "缺少目标。示例：/task <你的目标>", "缺少目標。範例：/task <你的目標>"), ThemeManager.Error);
+                    input.Clear();
+                    return true;
+                }
+                bool useBrowser = !parsed.Flags.ContainsKey("desktop");
+                var _ = RunTaskAgentAsync(goal, useBrowser);
+                input.Clear();
+                return true;
+            }
             if (verb == "help")
             {
                 AppendChat("ZhuaQian",
@@ -59,7 +74,9 @@ namespace ZhuaQianDesktopApp
                     "  /remote check\r\n" +
                     "  /remote run host=user@example.com command=\"pwd && ls\"\r\n" +
                     "  /remote pull host=user@example.com remotePath=/var/log/app.log localPath=C:\\\\Temp\\\\app.log\r\n" +
-                    "  /remote push host=user@example.com localPath=C:\\\\Temp\\\\app.txt remotePath=/tmp/app.txt",
+                    "  /remote push host=user@example.com localPath=C:\\\\Temp\\\\app.txt remotePath=/tmp/app.txt\r\n" +
+                    "  /task <goal>            (autonomous task loop; add --desktop for screen control)\r\n" +
+                    "  /agent <goal>           (alias of /task)",
                     ThemeManager.Success);
                 input.Clear();
                 return true;

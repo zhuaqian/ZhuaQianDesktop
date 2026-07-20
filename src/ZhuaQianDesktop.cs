@@ -1672,7 +1672,7 @@ namespace ZhuaQianDesktopApp
             string preview = BuildRollbackPreview(manifestPath);
             var rollbackGate = PermissionGate.FromJson(permGate.ToJson());
             rollbackGate.Set("permFileMoveDelete", PermissionLevel.Ask);
-            var pipeline = agentPipelineFactory.Create(rollbackGate, pluginDir, allowAdvancedPlugins);
+            var pipeline = agentPipelineFactory.Create(rollbackGate, pluginDir, allowAdvancedPlugins, null, MainForm.ShowPluginCapabilityPrompt);
             pipeline.RequestApproval = command => ShowApprovalCard("RollbackFiles",
                 Tr("Confirm Rollback", "确认回滚", "確認回滾"),
                 Tr("Execute", "执行", "執行"),
@@ -2106,7 +2106,7 @@ namespace ZhuaQianDesktopApp
 
             var organizeGate = PermissionGate.FromJson(permGate.ToJson());
             organizeGate.Set("permFileMoveDelete", PermissionLevel.Ask);
-            var pipeline = agentPipelineFactory.Create(organizeGate, pluginDir, allowAdvancedPlugins);
+            var pipeline = agentPipelineFactory.Create(organizeGate, pluginDir, allowAdvancedPlugins, null, MainForm.ShowPluginCapabilityPrompt);
             pipeline.RequestApproval = command => ShowApprovalCard(
                 "OrganizeFolder",
                 "Organize folder",
@@ -2271,7 +2271,7 @@ namespace ZhuaQianDesktopApp
                     string processName = proc.ProcessName;
                     var processGate = PermissionGate.FromJson(permGate.ToJson());
                     processGate.Set("permProcessManage", PermissionLevel.Ask);
-                    var pipeline = agentPipelineFactory.Create(processGate, pluginDir, allowAdvancedPlugins);
+                    var pipeline = agentPipelineFactory.Create(processGate, pluginDir, allowAdvancedPlugins, null, MainForm.ShowPluginCapabilityPrompt);
                     pipeline.RequestApproval = command => ShowApprovalCard("EndProcess",
                         Tr("Confirm end task", "确认结束进程", "確認結束處理程序"),
                         Tr("Execute", "执行", "執行"),
@@ -2905,7 +2905,7 @@ namespace ZhuaQianDesktopApp
             {
                 var pluginGate = PermissionGate.FromJson(permGate.ToJson());
                 pluginGate.Set("permPluginRun", PermissionLevel.Ask);
-                var pipeline = agentPipelineFactory.Create(pluginGate, pluginDir, allowAdvancedPlugins);
+                var pipeline = agentPipelineFactory.Create(pluginGate, pluginDir, allowAdvancedPlugins, null, MainForm.ShowPluginCapabilityPrompt);
                 pipeline.RequestApproval = approvalCommand => ConfirmPluginRun(approvalCommand.Target, stdin);
 
                 var args = new Dictionary<string, object>();
