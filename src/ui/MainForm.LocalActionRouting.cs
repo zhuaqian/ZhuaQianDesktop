@@ -170,6 +170,24 @@ namespace ZhuaQianDesktopApp
             if (TryRoutePublishAndBrowser(text)) return true;
             string lower = text.ToLowerInvariant();
 
+            // Natural-language autonomous task loop (e.g. "自动完成任务：打开记事本并写入会议纪要").
+            // Placed first among intent detectors so task phrases containing words like "打开"
+            // are routed to the agent loop rather than the one-shot computer-control open action.
+            if (LooksLikeTaskAgentRequest(lower))
+            {
+                string goal = ExtractTaskGoal(text);
+                if (string.IsNullOrWhiteSpace(goal))
+                {
+                    AppendChat("Error", Tr("Missing goal. Example: ", "缺少目标。示例：", "缺少目標。範例：") + "自动完成任务：打开记事本并写入会议纪要", ThemeManager.Error);
+                    input.Clear();
+                    return true;
+                }
+                bool useBrowser = !ContainsAny(lower, "桌面", "螢幕", "屏幕", "desktop", "screen");
+                var _ = RunTaskAgentAsync(goal, useBrowser);
+                input.Clear();
+                return true;
+            }
+
             if (LooksLikeComputerDiagnosisRequest(lower))
             {
                 string report = ForceRedaction(systemDiagnostics.BuildReport());
@@ -300,6 +318,31 @@ namespace ZhuaQianDesktopApp
             }
 
             return false;
+        }
+
+        bool LooksLikeTaskAgentRequest(string lower)
+        {
+            return ContainsAny(lower,
+                "自动完成任务", "自動完成任務", "自动执行任务", "自動執行任務",
+                "自动化任务", "自動化任務", "自动任务", "自動任務",
+                "帮我完成任务", "幫我完成任務", "帮我做任务", "幫我做任務",
+                "执行任务", "執行任務", "完成任务", "完成任務",
+                "autonomous task", "auto task", "automate task", "run a task", "automatic task");
+        }
+
+        string ExtractTaskGoal(string text)
+        {
+            string quoted = ExtractQuotedText(text);
+            if (!string.IsNullOrWhiteSpace(quoted)) return TrimNaturalTarget(quoted);
+            string goal = ExtractNaturalTarget(text, new string[] {
+                "自动完成任务", "自動完成任務", "自动执行任务", "自動執行任務",
+                "自动化任务", "自動化任務", "执行任务", "執行任務", "完成任务", "完成任務",
+                "帮我完成任务", "幫我完成任務", "帮我做任务", "幫我做任務",
+                "autonomous task", "auto task", "automate task", "run a task" });
+            if (string.IsNullOrWhiteSpace(goal)) return "";
+            goal = goal.Trim();
+            if (goal.StartsWith(":") || goal.StartsWith("：")) goal = goal.Substring(1).Trim();
+            return TrimNaturalTarget(goal);
         }
 
         bool LooksLikeEndProcessRequest(string lower)
