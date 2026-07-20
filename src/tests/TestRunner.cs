@@ -600,8 +600,13 @@ class TestRunner
             Assert(rollbackResult.Status == CommandStatus.Success, "rollback command succeeds");
             Assert(File.Exists(messyFile), "rollback command restores original file");
 
-            string plugin = Path.Combine(dir, "echo.ps1");
-            File.WriteAllText(plugin, "$text = @($input) -join ''; Write-Output (\"plugin:\" + $text)", Encoding.UTF8);
+            // Use a Python plugin here: it exercises the exact same PluginRunner
+            // stdin plumbing (write + close), but Python's sys.stdin.read() reads
+            // redirected stdin deterministically. Windows PowerShell's -File host
+            // does not reliably expose redirected stdin to the script (both
+            // [Console]::In.ReadToEnd() and $input come back empty on CI).
+            string plugin = Path.Combine(dir, "echo.py");
+            File.WriteAllText(plugin, "import sys\nsys.stdout.write('plugin:' + sys.stdin.read())", Encoding.UTF8);
             var pluginArgs = new Dictionary<string, object>();
             pluginArgs["stdin"] = "hello";
             pluginArgs["taskTitle"] = "Pipeline Task";
