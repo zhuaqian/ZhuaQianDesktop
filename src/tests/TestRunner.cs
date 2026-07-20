@@ -601,7 +601,7 @@ class TestRunner
             Assert(File.Exists(messyFile), "rollback command restores original file");
 
             string plugin = Path.Combine(dir, "echo.ps1");
-            File.WriteAllText(plugin, "$text = [Console]::In.ReadToEnd(); Write-Output (\"plugin:\" + $text)", Encoding.UTF8);
+            File.WriteAllText(plugin, "$text = @($input) -join ''; Write-Output (\"plugin:\" + $text)", Encoding.UTF8);
             var pluginArgs = new Dictionary<string, object>();
             pluginArgs["stdin"] = "hello";
             pluginArgs["taskTitle"] = "Pipeline Task";

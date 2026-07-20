@@ -36,11 +36,11 @@ namespace ZhuaQianDesktopApp.Documents
                 name => name == "word/document.xml",
                 xml =>
                 {
-                    int before = CountMatches(xml, "<w:p[ >]");
+                    int before = CountMatches(xml, "<w:p[ />]");
                     xml = Regex.Replace(xml, "<w:p\\s*/>", "");
                     xml = Regex.Replace(xml, "<w:p>(<w:r>)?</w:p>", "");
                     xml = Regex.Replace(xml, "(<w:p></w:p>){3,}", "<w:p></w:p>");
-                    res.RemovedUnits = before - CountMatches(xml, "<w:p[ >]");
+                    res.RemovedUnits = before - CountMatches(xml, "<w:p[ />]");
                     return xml;
                 });
             res.Note = "Removed " + res.RemovedUnits + " empty paragraph(s).";
@@ -55,10 +55,10 @@ namespace ZhuaQianDesktopApp.Documents
                 name => name.StartsWith("ppt/slides/slide") && name.EndsWith(".xml"),
                 xml =>
                 {
-                    int before = CountMatches(xml, "<a:p[ >]");
+                    int before = CountMatches(xml, "<a:p[ />]");
                     xml = Regex.Replace(xml, "<a:p\\s*/>", "");
                     xml = Regex.Replace(xml, "<a:p></a:p>", "");
-                    res.RemovedUnits += before - CountMatches(xml, "<a:p[ >]");
+                    res.RemovedUnits += before - CountMatches(xml, "<a:p[ />]");
                     return xml;
                 });
             res.Note = "Removed " + res.RemovedUnits + " empty paragraph(s) across slides.";
@@ -73,10 +73,10 @@ namespace ZhuaQianDesktopApp.Documents
                 name => name.StartsWith("xl/worksheets/sheet") && name.EndsWith(".xml"),
                 xml =>
                 {
-                    int before = CountMatches(xml, "<row[ >]");
+                    int before = CountMatches(xml, "<row[ />]");
                     xml = Regex.Replace(xml, "<row[^>]*>\\s*</row>", "");
                     xml = Regex.Replace(xml, "<row\\s*/>", "");
-                    res.RemovedUnits += before - CountMatches(xml, "<row[ >]");
+                    res.RemovedUnits += before - CountMatches(xml, "<row[ />]");
                     return xml;
                 });
             res.Note = "Removed " + res.RemovedUnits + " empty row(s) across worksheets.";

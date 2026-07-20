@@ -90,13 +90,18 @@ namespace ZhuaQianDesktopApp.Core
                 { "远程", "permNetworkUpload" },
                 { "ssh", "permNetworkUpload" }
             };
-            foreach (var kv in verbMap)
+            bool hasForbid = lower.Contains("forbid") || lower.Contains("disable") || lower.Contains("deny")
+                || lower.Contains("禁止") || lower.Contains("不允许") || lower.Contains("不准") || lower.Contains("不要运行");
+            if (hasForbid)
             {
-                if (lower.Contains("forbid " + kv.Key) || lower.Contains("disable " + kv.Key)
-                    || lower.Contains("禁止" + kv.Key) || lower.Contains("禁止 " + kv.Key)
-                    || lower.Contains("不允许" + kv.Key) || lower.Contains("deny " + kv.Key))
+                var addedPerms = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var kv in verbMap)
                 {
+                    // Forbid-indicator + keyword co-occurrence, e.g. "禁止运行插件"
+                    // where a verb ("运行") sits between the negation and the noun.
+                    if (!lower.Contains(kv.Key)) continue;
                     string perm = kv.Value;
+                    if (!addedPerms.Add(perm)) continue; // one rule per permission
                     rules.Add(new DelegatePermissionRule((action, target) =>
                         action == perm ? (PermissionDecision?)PermissionDecision.Deny : null));
                     notes.Add("Deny " + kv.Key + " actions (" + perm + ").");

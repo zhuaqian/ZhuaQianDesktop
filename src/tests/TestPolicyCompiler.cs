@@ -22,9 +22,12 @@ static class TestPolicyCompiler
                 File.WriteAllText(small, "tiny");
                 var rules = PolicyCompiler.Compile("不要删除超过 10 MB 的文件", null, new List<string>());
                 Assert(rules.Count == 1, "expected 1 rule", ref failures);
-                Assert(rules[0].Evaluate("permFileMoveDelete", big) == PermissionDecision.Deny, "big file should be denied", ref failures);
-                Assert(rules[0].Evaluate("permFileMoveDelete", small) != PermissionDecision.Deny, "small file should NOT be denied", ref failures);
-                Assert(rules[0].Evaluate("permFileWrite", big) == null, "unrelated action should abstain", ref failures);
+                if (rules.Count == 1)
+                {
+                    Assert(rules[0].Evaluate("permFileMoveDelete", big) == PermissionDecision.Deny, "big file should be denied", ref failures);
+                    Assert(rules[0].Evaluate("permFileMoveDelete", small) != PermissionDecision.Deny, "small file should NOT be denied", ref failures);
+                    Assert(rules[0].Evaluate("permFileWrite", big) == null, "unrelated action should abstain", ref failures);
+                }
             }
             finally { TryDelete(big); TryDelete(small); }
         }
@@ -36,16 +39,22 @@ static class TestPolicyCompiler
             var nightRules = PolicyCompiler.Compile("晚上10点后不要联网", nightClock, new List<string>());
             var dayRules = PolicyCompiler.Compile("晚上10点后不要联网", dayClock, new List<string>());
             Assert(nightRules.Count == 1, "expected 1 network rule", ref failures);
-            Assert(nightRules[0].Evaluate("permNetworkUpload", "http://x") == PermissionDecision.Deny, "night upload denied", ref failures);
-            Assert(dayRules[0].Evaluate("permNetworkUpload", "http://x") != PermissionDecision.Deny, "day upload allowed", ref failures);
+            if (nightRules.Count == 1 && dayRules.Count == 1)
+            {
+                Assert(nightRules[0].Evaluate("permNetworkUpload", "http://x") == PermissionDecision.Deny, "night upload denied", ref failures);
+                Assert(dayRules[0].Evaluate("permNetworkUpload", "http://x") != PermissionDecision.Deny, "day upload allowed", ref failures);
+            }
         }
 
         // 3) forbid-plugin keyword denies plugin runs.
         {
             var rules = PolicyCompiler.Compile("禁止运行插件", null, new List<string>());
             Assert(rules.Count == 1, "expected 1 plugin rule", ref failures);
-            Assert(rules[0].Evaluate("permPluginRun", "x.py") == PermissionDecision.Deny, "plugin run denied", ref failures);
-            Assert(rules[0].Evaluate("permFileWrite", "x.txt") == null, "plugin rule abstains on other actions", ref failures);
+            if (rules.Count == 1)
+            {
+                Assert(rules[0].Evaluate("permPluginRun", "x.py") == PermissionDecision.Deny, "plugin run denied", ref failures);
+                Assert(rules[0].Evaluate("permFileWrite", "x.txt") == null, "plugin rule abstains on other actions", ref failures);
+            }
         }
 
         // 4) empty input yields no rules.
