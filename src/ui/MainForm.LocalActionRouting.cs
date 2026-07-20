@@ -252,6 +252,27 @@ namespace ZhuaQianDesktopApp
                 return true;
             }
 
+            if (LooksLikeSaveDocumentRequest(lower))
+            {
+                ExecuteSaveDocument(text);
+                input.Clear();
+                return true;
+            }
+
+            if (LooksLikeWebsiteRequest(lower))
+            {
+                ExecuteBuildSite(text);
+                input.Clear();
+                return true;
+            }
+
+            if (LooksLikeOptimizeOfficeRequest(lower))
+            {
+                ExecuteOptimizeOffice(text);
+                input.Clear();
+                return true;
+            }
+
             if (LooksLikeDiagnoseFixRequest(lower))
             {
                 ExecuteDiagnoseFix(text);

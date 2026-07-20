@@ -210,6 +210,7 @@ namespace ZhuaQianDesktopApp.Agent
         {
             readonly ProjectProfile profile;
             readonly RuleBasedFixStrategy rule = new RuleBasedFixStrategy();
+            readonly ModelFixStrategy model = new ModelFixStrategy();
 
             public DiagnoseFixFixStrategy(ProjectProfile profile) { this.profile = profile; }
 
@@ -233,16 +234,24 @@ namespace ZhuaQianDesktopApp.Agent
                     mapped.Add(m);
                 }
                 var patches = rule.SuggestFixes(mapped, profile);
-                if (patches == null) return ops;
-                foreach (var p in patches)
+                if (patches != null)
                 {
-                    ops.Add(new FixLoopRunner.PatchOp
+                    foreach (var p in patches)
                     {
-                        Op = "edit",
-                        Target = p.FilePath,
-                        OldText = p.OldContent ?? "",
-                        NewText = p.NewContent ?? ""
-                    });
+                        ops.Add(new FixLoopRunner.PatchOp
+                        {
+                            Op = "edit",
+                            Target = p.FilePath,
+                            OldText = p.OldContent ?? "",
+                            NewText = p.NewContent ?? ""
+                        });
+                    }
+                }
+                // Deterministic strategy found nothing safe -> ask the model for edits.
+                if (ops.Count == 0)
+                {
+                    var modelOps = model.Propose(root, failedStep, errors);
+                    if (modelOps != null) ops.AddRange(modelOps);
                 }
                 return ops;
             }

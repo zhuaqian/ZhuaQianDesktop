@@ -66,6 +66,10 @@ class TestRunner
         failures += TestCodingLoopSession.RunAll();
         failures += TestDiagnoseFix.RunAll();
         failures += TestLlmTaskPolicy.RunAll();
+        failures += TestWriteFileExecutor.RunAll();
+        failures += TestSiteGenerator.RunAll();
+        failures += TestOfficeOptimizer.RunAll();
+        failures += TestModelFixStrategy.RunAll();
 
         Console.WriteLine("================================");
         Console.WriteLine("Passed: " + passed + "  Failed: " + failures);

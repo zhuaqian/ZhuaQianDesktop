@@ -75,6 +75,8 @@ namespace ZhuaQianDesktopApp
                 return;
             }
 
+            WireLlmBridge();
+
             if (!EnsurePermission(
                     Tr("Run build/test and modify code files", "运行构建/测试并修改代码文件", "執行建置/測試並修改程式碼檔案"),
                     permFileWrite, true, "Diagnose & Fix"))
