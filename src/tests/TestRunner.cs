@@ -70,6 +70,7 @@ class TestRunner
         failures += TestSiteGenerator.RunAll();
         failures += TestOfficeOptimizer.RunAll();
         failures += TestModelFixStrategy.RunAll();
+        failures += TestAuditLog.RunAll();
 
         Console.WriteLine("================================");
         Console.WriteLine("Passed: " + passed + "  Failed: " + failures);
