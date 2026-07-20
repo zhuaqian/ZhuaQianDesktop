@@ -32,7 +32,7 @@ namespace ZhuaQianDesktopApp
                     LogAction("PlanReview", "Inserted structured plan review");
                     AppendChat("ZhuaQian", Tr("Structured plan review inserted into the input box.",
                         "结构化计划审查已插入输入框。",
-                        "結構化計畫審查已插入輸入框。"), Color.FromArgb(0, 130, 80));
+                        "結構化計畫審查已插入輸入框。"), ThemeManager.Success);
                 }
             }
         }

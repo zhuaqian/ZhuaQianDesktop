@@ -19,7 +19,7 @@ namespace ZhuaQianDesktopApp
         TextBox txtModelSearch;
         TextBox txtGeminiKey, txtOrKey, txtLocalUrl, txtCustomUrl, txtCustomKey;
         TextBox txtTencentKey, txtAlibabaKey, txtZhipuKey;
-        ComboBox cmbCustomPreset, cmbLanguage;
+        ComboBox cmbCustomPreset, cmbLanguage, themeCombo;
         Label lblKeyHint, lblConnectionStatus;
         Panel mainPanel;
         string modelSearch = "";
@@ -43,10 +43,12 @@ namespace ZhuaQianDesktopApp
             FormBorderStyle = FormBorderStyle.FixedDialog;
             MaximizeBox = false;
             MinimizeBox = false;
-            BackColor = Color.FromArgb(245, 245, 245);
+            BackColor = ThemeManager.FormBack;
             Font = new Font(IsEnglish() ? "Segoe UI" : "Microsoft YaHei UI", 9f);
 
             BuildUI();
+            ThemeManager.Apply(this);
+            SelectModelFromSettings(selectedModel, false);
         }
 
         public ModelInfo SelectedModel { get { return selectedModel; } }
@@ -110,9 +112,26 @@ namespace ZhuaQianDesktopApp
                 SyncFieldsToManager();
                 uiLanguage = LanguageCode(Convert.ToString(cmbLanguage.SelectedItem));
                 BuildUI();
+                ThemeManager.Apply(this);
+                SelectModelFromSettings(selectedModel, false);
             };
             mainPanel.Controls.Add(languageLabel);
             mainPanel.Controls.Add(cmbLanguage);
+            y += 38;
+
+            var themeLabel = new Label { Text = T("Theme", "主题", "主題"), Location = new Point(20, y + 4), AutoSize = true };
+            themeCombo = new ComboBox { Location = new Point(120, y), Width = 180, DropDownStyle = ComboBoxStyle.DropDownList };
+            themeCombo.Items.Add(T("Light", "浅色", "淺色"));
+            themeCombo.Items.Add(T("Dark", "深色", "深色"));
+            themeCombo.SelectedIndex = (ThemeManager.Current == ThemeName.Dark) ? 1 : 0;
+            themeCombo.SelectedIndexChanged += (s, e2) =>
+            {
+                ThemeManager.SetTheme(themeCombo.SelectedIndex == 1 ? ThemeName.Dark : ThemeName.Light);
+                ThemeManager.Apply(this);
+                SelectModelFromSettings(selectedModel, false);
+            };
+            mainPanel.Controls.Add(themeLabel);
+            mainPanel.Controls.Add(themeCombo);
             y += 38;
 
             var searchLabel = new Label { Text = T("Search", "搜索", "搜尋"), Location = new Point(20, y + 4), AutoSize = true };
@@ -427,14 +446,14 @@ namespace ZhuaQianDesktopApp
                 foreach (var item in modelRows)
                 {
                     bool selected = item.Key == model;
-                    item.Value.BackColor = selected ? Color.FromArgb(220, 235, 255) : Color.White;
+                    item.Value.BackColor = selected ? ThemeManager.UserBubble : ThemeManager.PanelBack;
                     RadioButton radio;
                     if (modelRadios.TryGetValue(item.Key, out radio)) radio.Checked = selected;
                     Label status;
                     if (modelStatusLabels.TryGetValue(item.Key, out status))
                     {
                         status.Text = selected ? T("SELECTED", "已选择", "已選擇") : RowStatusLabel(item.Key);
-                        status.ForeColor = selected ? Color.FromArgb(0, 110, 70) : RowStatusColor(item.Key);
+                        status.ForeColor = selected ? ThemeManager.Success : RowStatusColor(item.Key);
                     }
                 }
             }
@@ -464,7 +483,7 @@ namespace ZhuaQianDesktopApp
 
         static void SetBackColor(TextBox box, bool isActive, Color active)
         {
-            if (box != null) box.BackColor = isActive ? active : Color.White;
+            if (box != null) box.BackColor = isActive ? active : ThemeManager.InputBack;
         }
 
         string BuildKeyHint()
@@ -498,10 +517,10 @@ namespace ZhuaQianDesktopApp
         Color RowStatusColor(ModelInfo model)
         {
             string label = RowStatusLabel(model);
-            if (label == T("PASS", "通过", "通過") || label == T("READY", "就绪", "就緒")) return Color.FromArgb(0, 140, 70);
-            if (label == T("FAIL", "失败", "失敗")) return Color.FromArgb(190, 40, 40);
-            if (label == T("NO KEY", "缺密钥", "缺金鑰")) return Color.FromArgb(190, 120, 20);
-            return Color.FromArgb(120, 120, 120);
+            if (label == T("PASS", "通过", "通過") || label == T("READY", "就绪", "就緒")) return ThemeManager.Success;
+            if (label == T("FAIL", "失败", "失敗")) return ThemeManager.Error;
+            if (label == T("NO KEY", "缺密钥", "缺金鑰")) return ThemeManager.Warning;
+            return ThemeManager.MutedFore;
         }
 
         void FocusFieldForSelectedModel()
@@ -547,7 +566,7 @@ namespace ZhuaQianDesktopApp
             modelTestStatus[selectedModel.Id] = pass ? "test passed" : "test failed";
             SelectModelFromSettings(selectedModel, false);
             lblConnectionStatus.Text = result;
-            lblConnectionStatus.ForeColor = pass ? Color.FromArgb(0, 140, 60) : Color.FromArgb(190, 40, 40);
+            lblConnectionStatus.ForeColor = pass ? ThemeManager.Success : ThemeManager.Error;
         }
 
         string T(string en, string zhHans, string zhHant)

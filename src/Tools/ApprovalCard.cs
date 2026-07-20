@@ -56,7 +56,7 @@ namespace ZhuaQianDesktopApp.Tools
                     Top = 14,
                     Width = 520,
                     Height = 34,
-                    ForeColor = Color.FromArgb(190, 40, 40),
+                    ForeColor = ThemeManager.Error,
                     Font = new Font(Font, FontStyle.Bold),
                     Text = T("HIGH RISK: the full command/URL/target is shown below. This approval is NOT remembered and will not apply to future similar actions.",
                               "高风险：下方显示完整命令 / URL / 目标主机。本次批准不会被记忆，也不会套用到后续同类操作。",

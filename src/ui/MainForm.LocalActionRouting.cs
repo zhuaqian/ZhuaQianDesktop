@@ -37,7 +37,7 @@ namespace ZhuaQianDesktopApp
             if (!parsed.IsCommand) return false;
             if (!string.IsNullOrWhiteSpace(parsed.Error))
             {
-                AppendChat("Error", parsed.Error, Color.FromArgb(190, 40, 40));
+                AppendChat("Error", parsed.Error, ThemeManager.Error);
                 return true;
             }
 
@@ -59,7 +59,7 @@ namespace ZhuaQianDesktopApp
                     "  /remote run host=user@example.com command=\"pwd && ls\"\r\n" +
                     "  /remote pull host=user@example.com remotePath=/var/log/app.log localPath=C:\\\\Temp\\\\app.log\r\n" +
                     "  /remote push host=user@example.com localPath=C:\\\\Temp\\\\app.txt remotePath=/tmp/app.txt",
-                    Color.FromArgb(0, 130, 80));
+                    ThemeManager.Success);
                 input.Clear();
                 return true;
             }
@@ -135,7 +135,7 @@ namespace ZhuaQianDesktopApp
 
             if (string.IsNullOrWhiteSpace(target) && verb != "wait")
             {
-                AppendChat("Error", "Missing target for /" + verb + ". Type /help for examples.", Color.FromArgb(190, 40, 40));
+                AppendChat("Error", "Missing target for /" + verb + ". Type /help for examples.", ThemeManager.Error);
                 return true;
             }
 
@@ -156,7 +156,7 @@ namespace ZhuaQianDesktopApp
                 string report = ForceRedaction(systemDiagnostics.BuildReport());
                 if (!HasUsableProviderKey())
                 {
-                    AppendChat("ZhuaQian", report, Color.FromArgb(0, 130, 80));
+                    AppendChat("ZhuaQian", report, ThemeManager.Success);
                     input.Clear();
                     return true;
                 }
@@ -191,7 +191,7 @@ namespace ZhuaQianDesktopApp
                 int pid;
                 if (!TryExtractPid(text, out pid))
                 {
-                    AppendChat("Error", Tr("Missing PID. Example: ", "缺少 PID。示例：", "缺少 PID。範例：") + "结束 PID 1234", Color.FromArgb(190, 40, 40));
+                    AppendChat("Error", Tr("Missing PID. Example: ", "缺少 PID。示例：", "缺少 PID。範例：") + "结束 PID 1234", ThemeManager.Error);
                     return true;
                 }
                 EndProcessByPid(pid);
@@ -205,7 +205,7 @@ namespace ZhuaQianDesktopApp
                 path = CleanPath(path);
                 if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
                 {
-                    AppendChat("Error", Tr("Plugin file not found. Example: ", "找不到插件文件。示例：", "找不到外掛檔案。範例：") + "运行插件 \"C:\\path\\tool.py\"", Color.FromArgb(190, 40, 40));
+                    AppendChat("Error", Tr("Plugin file not found. Example: ", "找不到插件文件。示例：", "找不到外掛檔案。範例：") + "运行插件 \"C:\\path\\tool.py\"", ThemeManager.Error);
                     return true;
                 }
                 RunPluginPath(path, text);
@@ -219,7 +219,7 @@ namespace ZhuaQianDesktopApp
                 path = CleanPath(path);
                 if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
                 {
-                    AppendChat("Error", Tr("Folder not found. Example: ", "找不到文件夹。示例：", "找不到資料夾。範例：") + "整理文件夹 \"C:\\path\\folder\"", Color.FromArgb(190, 40, 40));
+                    AppendChat("Error", Tr("Folder not found. Example: ", "找不到文件夹。示例：", "找不到資料夾。範例：") + "整理文件夹 \"C:\\path\\folder\"", ThemeManager.Error);
                     return true;
                 }
                 ExecuteOrganizeFolder(path);
@@ -233,7 +233,7 @@ namespace ZhuaQianDesktopApp
                 target = NormalizeOpenTarget(target);
                 if (string.IsNullOrWhiteSpace(target))
                 {
-                    AppendChat("Error", Tr("Missing open target. Example: ", "缺少打开目标。示例：", "缺少開啟目標。範例：") + "打开记事本 / 打开 \"C:\\path\\file.txt\"", Color.FromArgb(190, 40, 40));
+                    AppendChat("Error", Tr("Missing open target. Example: ", "缺少打开目标。示例：", "缺少開啟目標。範例：") + "打开记事本 / 打开 \"C:\\path\\file.txt\"", ThemeManager.Error);
                     return true;
                 }
 
@@ -305,14 +305,14 @@ namespace ZhuaQianDesktopApp
             List<string> urls = ExtractWebUrls(raw);
             if (urls.Count == 0)
             {
-                AppendChat("Error", Tr("No URL found.", "没有找到网址。", "沒有找到網址。"), Color.FromArgb(190, 40, 40));
+                AppendChat("Error", Tr("No URL found.", "没有找到网址。", "沒有找到網址。"), ThemeManager.Error);
                 return;
             }
 
             if (!EnsurePermission(Tr("Fetch/analyze URL", "读取/分析网址", "讀取/分析網址"), permNetworkUpload, false, "URL Page Fetch"))
                 return;
 
-            AppendChat("You", "[Mode: " + ModeDisplayName(workMode) + "]\r\n" + raw, Color.FromArgb(30, 90, 180));
+            AppendChat("You", "[Mode: " + ModeDisplayName(workMode) + "]\r\n" + raw, ThemeManager.UserAccent);
             SetCurrentTaskStatus("running", "Fetching URL page text", false);
 
             var pages = new List<WebPageFetchResult>();
@@ -349,7 +349,7 @@ namespace ZhuaQianDesktopApp
             if (search != null && !search.Success && !string.IsNullOrWhiteSpace(search.ErrorMessage))
                 provider = provider + " failed: " + search.ErrorMessage;
             WebPageAnalysisReport report = WebPageReportBuilder.Build(raw, pages, search == null ? null : search.Results, provider, searchQuery, DateTime.Now);
-            AppendChat("ZhuaQian", report.Markdown, Color.FromArgb(0, 130, 80));
+            AppendChat("ZhuaQian", report.Markdown, ThemeManager.Success);
 
             int fetched = report.SuccessCount;
             int failed = report.FailureCount;
@@ -364,7 +364,7 @@ namespace ZhuaQianDesktopApp
             {
                 lastExportNameHint = string.IsNullOrWhiteSpace(report.TitleHint) ? "网站分析报告" : report.TitleHint;
                 if (!SaveTextAsFormat(report.Markdown, format, true))
-                    AppendChat("Error", Tr("Report file generation failed. Use Save File to choose a path manually.", "报告文件生成失败。可用“保存文件”手动选择路径。", "報告檔案產生失敗。可用「儲存檔案」手動選擇路徑。"), Color.FromArgb(190, 40, 40));
+                    AppendChat("Error", Tr("Report file generation failed. Use Save File to choose a path manually.", "报告文件生成失败。可用“保存文件”手动选择路径。", "報告檔案產生失敗。可用「儲存檔案」手動選擇路徑。"), ThemeManager.Error);
             }
 
             SaveCurrentTask();
@@ -496,7 +496,7 @@ namespace ZhuaQianDesktopApp
                     RecordAction("OfficeTemplate", "success", "Generated " + dlg.ResultKind + " -> " + target, "");
                     AppendChat("ZhuaQian",
                         Tr("Generated ", "已生成 ", "已產生 ") + dlg.ResultKind + ": " + target,
-                        Color.FromArgb(0, 130, 80));
+                        ThemeManager.Success);
                 }
                 else if (result.Status == CommandStatus.Cancelled)
                 {
@@ -625,12 +625,12 @@ namespace ZhuaQianDesktopApp
             if (string.IsNullOrWhiteSpace(content) && chat != null) content = chat.SelectedText;
             if (string.IsNullOrWhiteSpace(content))
             {
-                AppendChat("Error", "Nothing to save. Use /save docx \"content\" or ask the model first, then run /save docx.", Color.FromArgb(190, 40, 40));
+                AppendChat("Error", "Nothing to save. Use /save docx \"content\" or ask the model first, then run /save docx.", ThemeManager.Error);
                 return;
             }
 
             if (!SaveTextAsFormat(content, format, true))
-                AppendChat("Error", "File generation failed. Check write/export permission.", Color.FromArgb(190, 40, 40));
+                AppendChat("Error", "File generation failed. Check write/export permission.", ThemeManager.Error);
         }
 
         string FlagOrArgs(Tools.ParsedCommand parsed, string firstFlag, string secondFlag, string thirdFlag)
@@ -660,28 +660,28 @@ namespace ZhuaQianDesktopApp
             {
                 AppendChat("Error", Tr("Missing host. Example: /remote run host=user@example.com command=\"pwd\"",
                                        "缺少 host。示例：/remote run host=user@example.com command=\"pwd\"",
-                                       "缺少 host。範例：/remote run host=user@example.com command=\"pwd\""), Color.FromArgb(190, 40, 40));
+                                       "缺少 host。範例：/remote run host=user@example.com command=\"pwd\""), ThemeManager.Error);
                 return;
             }
             if (action == "run" && string.IsNullOrWhiteSpace(remoteCommand))
             {
                 AppendChat("Error", Tr("Missing command. Example: /remote run host=user@example.com command=\"pwd && ls\"",
                                        "缺少 command。示例：/remote run host=user@example.com command=\"pwd && ls\"",
-                                       "缺少 command。範例：/remote run host=user@example.com command=\"pwd && ls\""), Color.FromArgb(190, 40, 40));
+                                       "缺少 command。範例：/remote run host=user@example.com command=\"pwd && ls\""), ThemeManager.Error);
                 return;
             }
             if (action == "pull" && string.IsNullOrWhiteSpace(remotePath))
             {
                 AppendChat("Error", Tr("Missing remotePath for pull.",
                                        "pull 缺少 remotePath。",
-                                       "pull 缺少 remotePath。"), Color.FromArgb(190, 40, 40));
+                                       "pull 缺少 remotePath。"), ThemeManager.Error);
                 return;
             }
             if (action == "push" && (string.IsNullOrWhiteSpace(localPath) || string.IsNullOrWhiteSpace(remotePath)))
             {
                 AppendChat("Error", Tr("Push requires localPath and remotePath.",
                                        "push 需要 localPath 和 remotePath。",
-                                       "push 需要 localPath 和 remotePath。"), Color.FromArgb(190, 40, 40));
+                                       "push 需要 localPath 和 remotePath。"), ThemeManager.Error);
                 return;
             }
 
@@ -711,7 +711,7 @@ namespace ZhuaQianDesktopApp
             {
                 LogAction("RemoteHost", summary + " -> " + target);
                 RecordAction("RemoteHost", "success", summary + " -> " + target, result.ResultPath ?? "");
-                AppendChat("ZhuaQian", result.OutputText ?? "Remote action completed.", Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", result.OutputText ?? "Remote action completed.", ThemeManager.Success);
             }
             else if (result.Status == CommandStatus.Cancelled)
             {
@@ -756,7 +756,7 @@ namespace ZhuaQianDesktopApp
             {
                 LogAction("ComputerControl", summary + " -> " + target);
                 RecordAction("ComputerControl", "success", summary + " -> " + target, "");
-                AppendChat("ZhuaQian", result.OutputText ?? "Computer control completed.", Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", result.OutputText ?? "Computer control completed.", ThemeManager.Success);
             }
             else if (result.Status == CommandStatus.Cancelled)
             {

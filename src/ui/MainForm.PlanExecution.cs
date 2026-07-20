@@ -18,7 +18,7 @@ namespace ZhuaQianDesktopApp
             {
                 AppendChat("Error", Tr("Paste or generate a plan in the input box first.",
                     "请先在输入框里粘贴或生成一份计划。",
-                    "請先在輸入框裡貼上或產生一份計畫。"), Color.FromArgb(190, 40, 40));
+                    "請先在輸入框裡貼上或產生一份計畫。"), ThemeManager.Error);
                 return;
             }
 
@@ -34,7 +34,7 @@ namespace ZhuaQianDesktopApp
             {
                 AppendChat("Error", Tr("No executable steps were recognized in this plan.",
                     "这份计划里没有识别到可执行步骤。",
-                    "這份計畫裡沒有識別到可執行步驟。"), Color.FromArgb(190, 40, 40));
+                    "這份計畫裡沒有識別到可執行步驟。"), ThemeManager.Error);
                 return;
             }
 
@@ -106,7 +106,7 @@ namespace ZhuaQianDesktopApp
             }
             catch (Exception) { /* review is best-effort, never block the execution result */ }
 
-            AppendChat("ZhuaQian", Tr("Plan execution result:", "计划执行结果：", "計畫執行結果：") + "\r\n" + sb.ToString().Trim(), Color.FromArgb(0, 130, 80));
+            AppendChat("ZhuaQian", Tr("Plan execution result:", "计划执行结果：", "計畫執行結果：") + "\r\n" + sb.ToString().Trim(), ThemeManager.Success);
             LogAction("AgentPlan", "Executed " + ok + " / " + mapping.Commands.Count + " mapped plan steps");
         }
 

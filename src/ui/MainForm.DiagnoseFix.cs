@@ -71,7 +71,7 @@ namespace ZhuaQianDesktopApp
         {
             if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root))
             {
-                AppendChat("Error", Tr("Project folder not found.", "找不到项目文件夹。", "找不到專案資料夾。"), Color.FromArgb(190, 40, 40));
+                AppendChat("Error", Tr("Project folder not found.", "找不到项目文件夹。", "找不到專案資料夾。"), ThemeManager.Error);
                 return;
             }
 
@@ -82,7 +82,7 @@ namespace ZhuaQianDesktopApp
                     permFileWrite, true, "Diagnose & Fix"))
                 return;
 
-            AppendChat("You", "[Mode: " + ModeDisplayName(workMode) + "]\r\n" + goal, Color.FromArgb(30, 90, 180));
+            AppendChat("You", "[Mode: " + ModeDisplayName(workMode) + "]\r\n" + goal, ThemeManager.UserAccent);
             SetCurrentTaskStatus("running", "Diagnosing and fixing: " + root, false);
 
             var parameters = new Dictionary<string, object>();
@@ -134,7 +134,7 @@ namespace ZhuaQianDesktopApp
             {
                 SetCurrentTaskStatus("failed", "Diagnose and fix failed", true);
                 RecordAction("DiagnoseFix", "failed", result.ErrorMessage, "");
-                AppendChat("Error", result.ErrorMessage ?? Tr("Diagnose and fix failed.", "诊断修复失败。", "診斷修復失敗。"), Color.FromArgb(190, 40, 40));
+                AppendChat("Error", result.ErrorMessage ?? Tr("Diagnose and fix failed.", "诊断修复失败。", "診斷修復失敗。"), ThemeManager.Error);
             }
         }
 

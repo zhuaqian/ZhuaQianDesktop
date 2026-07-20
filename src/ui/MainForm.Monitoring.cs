@@ -123,7 +123,7 @@ namespace ZhuaQianDesktopApp
                         LogAction("Monitoring", "Collected process snapshot; events written=" + written);
                         RecordAction("Monitoring", "success", "Collected process snapshot; events written=" + written, eventsFile);
                         reload();
-                        AppendChat("ZhuaQian", Tr("Activity snapshot recorded: ", "\u6d3b\u52a8\u5feb\u7167\u5df2\u8bb0\u5f55\uff1a", "\u6d3b\u52d5\u5feb\u7167\u5df2\u8a18\u9304\uff1a") + written + " event(s)\r\n" + monitoringDir, Color.FromArgb(0, 130, 80));
+                        AppendChat("ZhuaQian", Tr("Activity snapshot recorded: ", "\u6d3b\u52a8\u5feb\u7167\u5df2\u8bb0\u5f55\uff1a", "\u6d3b\u52d5\u5feb\u7167\u5df2\u8a18\u9304\uff1a") + written + " event(s)\r\n" + monitoringDir, ThemeManager.Success);
                     }
                     catch (Exception ex) { MessageBox.Show(this, ex.Message, "Activity Monitor"); }
                 };

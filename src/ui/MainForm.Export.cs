@@ -53,7 +53,7 @@ namespace ZhuaQianDesktopApp
                 SetCurrentTaskStatus("ready_for_review", "Generated TXT", true);
                 AppendChat("ZhuaQian",
                     Tr("TXT file generated:\r\n", "TXT 文件已生成：\r\n", "TXT 檔案已產生：\r\n") + path,
-                    Color.FromArgb(0, 130, 80));
+                    ThemeManager.Success);
                 return true;
             }
             using (var sfd = new SaveFileDialog())
@@ -69,7 +69,7 @@ namespace ZhuaQianDesktopApp
                 RecordAction("SaveTxt", "success", "Saved reply text", sfd.FileName);
                 AppendChat("ZhuaQian",
                     Tr("TXT file saved:\r\n", "TXT 文件已保存：\r\n", "TXT 檔案已儲存：\r\n") + sfd.FileName,
-                    Color.FromArgb(0, 130, 80));
+                    ThemeManager.Success);
                 return true;
             }
         }
@@ -142,7 +142,7 @@ namespace ZhuaQianDesktopApp
                 }
                 SetCurrentTaskStatus("ready_for_review", "Generated " + upper, true);
                 RememberGeneratedFilePath(path);
-                AppendChat("ZhuaQian", upper + Tr(" file generated:\r\n", " 文件已生成：\r\n", " 檔案已產生：\r\n") + path + "\r\n" + Tr("Folder: ", "文件夹：", "資料夾：") + Path.GetDirectoryName(path), Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", upper + Tr(" file generated:\r\n", " 文件已生成：\r\n", " 檔案已產生：\r\n") + path + "\r\n" + Tr("Folder: ", "文件夹：", "資料夾：") + Path.GetDirectoryName(path), ThemeManager.Success);
                 return true;
             }
             using (var sfd = new SaveFileDialog())
@@ -173,7 +173,7 @@ namespace ZhuaQianDesktopApp
                 SetCurrentTaskStatus("ready_for_review", "Saved " + upper, true);
                 RecordAction("SaveFile", "success", "Saved " + format + " reply", sfd.FileName);
                 RememberGeneratedFilePath(sfd.FileName);
-                AppendChat("ZhuaQian", upper + Tr(" file saved:\r\n", " 文件已保存：\r\n", " 檔案已儲存：\r\n") + sfd.FileName + "\r\n" + Tr("Folder: ", "文件夹：", "資料夾：") + Path.GetDirectoryName(sfd.FileName), Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", upper + Tr(" file saved:\r\n", " 文件已保存：\r\n", " 檔案已儲存：\r\n") + sfd.FileName + "\r\n" + Tr("Folder: ", "文件夹：", "資料夾：") + Path.GetDirectoryName(sfd.FileName), ThemeManager.Success);
                 return true;
             }
         }

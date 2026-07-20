@@ -57,7 +57,7 @@ namespace ZhuaQianDesktopApp
                     AppendChat("ZhuaQian",
                         (opts.Encrypted ? Tr("Encrypted package saved:", "已加密分享包已保存：", "已加密分享包已儲存：")
                                         : Tr("Package saved:", "分享包已保存：", "分享包已儲存：")) + "\r\n" + sfd.FileName,
-                        Color.FromArgb(0, 130, 80));
+                        ThemeManager.Success);
                 }
                 catch (Exception ex)
                 {
@@ -104,7 +104,7 @@ namespace ZhuaQianDesktopApp
             LogAction("Import", "Imported package: " + path + (result.Encrypted ? " (decrypted)" : " (plain)"));
             AppendChat("ZhuaQian",
                 Tr("Imported package:", "已导入分享包：", "已匯入分享包：") + " " + result.Title + "\r\n" + path,
-                Color.FromArgb(0, 130, 80));
+                ThemeManager.Success);
         }
 
         byte[] BuildShareSettingsJson()
@@ -170,7 +170,7 @@ namespace ZhuaQianDesktopApp
                 copyBtn.SetBounds(14, 54, 90, 30);
                 copyBtn.Click += (s, e) =>
                 {
-                    try { Clipboard.SetText(server.Url); AppendChat("ZhuaQian", Tr("LAN URL copied.", "局域网地址已复制。", "區域網址已複製。"), Color.FromArgb(0, 130, 80)); }
+                    try { Clipboard.SetText(server.Url); AppendChat("ZhuaQian", Tr("LAN URL copied.", "局域网地址已复制。", "區域網址已複製。"), ThemeManager.Success); }
                     catch (Exception ex) { MessageBox.Show(this, ex.Message, "Copy failed"); }
                 };
                 stopBtn.Text = Tr("Stop & Close", "停止并关闭", "停止並關閉");
@@ -417,7 +417,7 @@ namespace ZhuaQianDesktopApp
                         string link = ShareClient.Upload(bytes, baseUrl);
                         linkBox.Text = link;
                         LogAction("ShareRelay", "Uploaded to relay: " + link + (opts.Encrypted ? " (encrypted)" : " (plain)"));
-                        AppendChat("ZhuaQian", Tr("Relay link ready:", "中继链接已生成：", "中繼連結已產生：") + "\r\n" + link, Color.FromArgb(0, 130, 80));
+                        AppendChat("ZhuaQian", Tr("Relay link ready:", "中继链接已生成：", "中繼連結已產生：") + "\r\n" + link, ThemeManager.Success);
                     }
                     catch (Exception ex)
                     {

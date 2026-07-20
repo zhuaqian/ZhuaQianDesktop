@@ -52,7 +52,7 @@ namespace ZhuaQianDesktopApp
                 liveLastHash = SnapshotHash(snap);
                 StartLiveTimer();
                 LogAction("Live", "Joined live session: " + input);
-                AppendChat("ZhuaQian", Tr("Joined live session. Syncing...", "已加入实时会话，同步中...", "已加入即時會話，同步中..."), Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", Tr("Joined live session. Syncing...", "已加入实时会话，同步中...", "已加入即時會話，同步中..."), ThemeManager.Success);
                 ShowLiveSessionDialog();
             }
             catch (Exception ex) { MessageBox.Show(this, Tr("Failed to join session: ", "加入会话失败：", "加入會話失敗：") + ex.Message, "Live"); }
@@ -77,7 +77,7 @@ namespace ZhuaQianDesktopApp
             if (liveTimer != null) liveTimer.Stop();
             liveSessionId = ""; liveRelay = ""; liveLastHash = "";
             LogAction("Live", "Stopped live session");
-            AppendChat("ZhuaQian", Tr("Live session stopped.", "实时会话已停止。", "即時會話已停止。"), Color.FromArgb(0, 130, 80));
+            AppendChat("ZhuaQian", Tr("Live session stopped.", "实时会话已停止。", "即時會話已停止。"), ThemeManager.Success);
         }
 
         void LiveTick()
@@ -101,7 +101,7 @@ namespace ZhuaQianDesktopApp
                     {
                         ApplyRemoteSnapshot(remote, false);
                         liveLastHash = remoteHash;
-                        AppendChat("ZhuaQian", Tr("Synced from collaborator.", "已从协作者同步。", "已從協作者同步。"), Color.FromArgb(0, 130, 80));
+                        AppendChat("ZhuaQian", Tr("Synced from collaborator.", "已从协作者同步。", "已從協作者同步。"), ThemeManager.Success);
                     }
                 }
             }

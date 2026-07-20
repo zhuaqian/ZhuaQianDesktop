@@ -181,17 +181,17 @@ namespace ZhuaQianDesktopApp
             Danger
         }
 
-        readonly Color zqWindowBg = Color.FromArgb(244, 244, 242);
-        readonly Color zqPanelBg = Color.FromArgb(250, 250, 248);
-        readonly Color zqSurface = Color.FromArgb(255, 255, 253);
-        readonly Color zqSideBg = Color.FromArgb(239, 239, 235);
-        readonly Color zqBorder = Color.FromArgb(218, 218, 212);
-        readonly Color zqInk = Color.FromArgb(31, 35, 40);
-        readonly Color zqMuted = Color.FromArgb(93, 99, 106);
-        readonly Color zqAccent = Color.FromArgb(35, 91, 255);
-        readonly Color zqSuccess = Color.FromArgb(16, 125, 84);
-        readonly Color zqWarning = Color.FromArgb(181, 112, 24);
-        readonly Color zqDanger = Color.FromArgb(181, 54, 43);
+        Color zqWindowBg => ThemeManager.FormBack;
+        Color zqPanelBg => ThemeManager.PanelBack;
+        Color zqSurface => ThemeManager.ControlBack;
+        Color zqSideBg => ThemeManager.SideBg;
+        Color zqBorder => ThemeManager.Border;
+        Color zqInk => ThemeManager.TextFore;
+        Color zqMuted => ThemeManager.MutedFore;
+        Color zqAccent => ThemeManager.Accent;
+        Color zqSuccess => ThemeManager.Success;
+        Color zqWarning => ThemeManager.Warning;
+        Color zqDanger => ThemeManager.Danger;
 
         void StyleButton(Button btn, ZqButtonRole role)
         {
@@ -202,7 +202,7 @@ namespace ZhuaQianDesktopApp
             btn.TextAlign = ContentAlignment.MiddleCenter;
             btn.FlatAppearance.MouseOverBackColor = Color.FromArgb(235, 238, 242);
             btn.FlatAppearance.MouseDownBackColor = Color.FromArgb(224, 228, 234);
-            btn.FlatAppearance.BorderSize = 1;
+            btn.FlatAppearance.BorderSize = 1; btn.Tag = role;
             btn.FlatAppearance.BorderColor = zqBorder;
             btn.BackColor = zqSurface;
             btn.ForeColor = zqInk;
@@ -811,7 +811,7 @@ namespace ZhuaQianDesktopApp
                 LogAction("Power", "Computer control enabled");
                 AppendChat("ZhuaQian", Tr("Computer-control permission is ON.",
                                            "电脑操作权限已开启。",
-                                           "電腦操作權限已開啟。"), Color.FromArgb(0, 130, 80));
+                                           "電腦操作權限已開啟。"), ThemeManager.Success);
             }
             else
             {
@@ -819,7 +819,7 @@ namespace ZhuaQianDesktopApp
                 LogAction("Power", "Computer control disabled");
                 AppendChat("ZhuaQian", Tr("Computer-control permission is OFF.",
                                            "电脑操作权限已关闭。",
-                                           "電腦操作權限已關閉。"), Color.FromArgb(0, 130, 80));
+                                           "電腦操作權限已關閉。"), ThemeManager.Success);
             }
             if (powerButton != null)
             {
@@ -964,7 +964,7 @@ namespace ZhuaQianDesktopApp
             UpdateCurrentTaskHeader();
             AppendChat("ZhuaQian", Tr("New task created. Upload a file or ask a question. Press Enter to send, Shift+Enter for a new line.",
                                        "新任务已创建。可以上传文件或直接提问。按 Enter 发送，Shift+Enter 换行。",
-                                       "新任務已建立。可以上傳檔案或直接提問。按 Enter 傳送，Shift+Enter 換行。"), Color.FromArgb(0, 130, 80));
+                                       "新任務已建立。可以上傳檔案或直接提問。按 Enter 傳送，Shift+Enter 換行。"), ThemeManager.Success);
             SaveCurrentTask();
             RefreshTaskList();
         }
@@ -1177,7 +1177,7 @@ namespace ZhuaQianDesktopApp
             {
                 AppendChat("ZhuaQian", Tr("This task is empty. Upload a file or ask a question.",
                                            "这个任务还是空的。可以上传文件或直接提问。",
-                                           "這個任務還是空的。可以上傳檔案或直接提問。"), Color.FromArgb(0, 130, 80));
+                                           "這個任務還是空的。可以上傳檔案或直接提問。"), ThemeManager.Success);
                 return;
             }
 
@@ -1188,8 +1188,8 @@ namespace ZhuaQianDesktopApp
                 string role = Convert.ToString(msg["role"]);
                 string text = PartsToText(msg.ContainsKey("parts") ? msg["parts"] : null);
                 if (string.IsNullOrWhiteSpace(text)) continue;
-                if (role == "user") AppendChat("You", text, Color.FromArgb(30, 90, 180));
-                else AppendChat("ZhuaQian", text, Color.FromArgb(0, 130, 80));
+                if (role == "user") AppendChat("You", text, ThemeManager.UserAccent);
+                else AppendChat("ZhuaQian", text, ThemeManager.Success);
             }
         }
 
@@ -1364,7 +1364,7 @@ namespace ZhuaQianDesktopApp
             }
             SaveConfig();
             RefreshAttachLabel();
-            AppendChat("ZhuaQian", Tr("Mode: ", "模式：", "模式：") + ModeDisplayName(workMode), Color.FromArgb(0, 130, 80));
+            AppendChat("ZhuaQian", Tr("Mode: ", "模式：", "模式：") + ModeDisplayName(workMode), ThemeManager.Success);
         }
 
         void PopulateModeCombo()
@@ -1562,7 +1562,7 @@ namespace ZhuaQianDesktopApp
                         AddKnowledgeChunks(info, text);
                         SaveKnowledgeIndex();
                         LogAction("AddOutputToKB", "Added output to KB: " + path);
-                        AppendChat("ZhuaQian", Tr("Output added to knowledge base.", "产物已加入知识库。", "產物已加入知識庫。"), Color.FromArgb(0, 130, 80));
+                        AppendChat("ZhuaQian", Tr("Output added to knowledge base.", "产物已加入知识库。", "產物已加入知識庫。"), ThemeManager.Success);
                     }
                     catch (Exception ex)
                     {
@@ -1698,7 +1698,7 @@ namespace ZhuaQianDesktopApp
                 LogAction("RollbackFiles", "Rollback completed through AgentPipeline: " + manifestPath);
                 SetCurrentTaskStatus("ready_for_review", "Rollback complete", true);
                 RecordAction("RollbackFiles", "success", result.OutputText ?? "Rollback complete", manifestPath);
-                AppendChat("ZhuaQian", "Rollback complete.\r\n" + (result.OutputText ?? "") + "\r\nManifest: " + manifestPath, Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", "Rollback complete.\r\n" + (result.OutputText ?? "") + "\r\nManifest: " + manifestPath, ThemeManager.Success);
             }
             catch (Exception ex)
             {
@@ -1947,7 +1947,7 @@ namespace ZhuaQianDesktopApp
             LogAction("UseCurrentContext", lastContextProcess + " | " + lastContextTitle);
             AppendChat("ZhuaQian", Tr("Current window context is ready in this task.",
                                        "当前窗口上下文已加入这个任务。",
-                                       "目前視窗上下文已加入這個任務。"), Color.FromArgb(0, 130, 80));
+                                       "目前視窗上下文已加入這個任務。"), ThemeManager.Success);
         }
 
         void PrepareAgentPlan()
@@ -2011,7 +2011,7 @@ namespace ZhuaQianDesktopApp
                                     string content = File.ReadAllText(path, Encoding.UTF8);
                                     input.Text = content + (string.IsNullOrWhiteSpace(input.Text) ? "" : "\r\n\r\n" + input.Text);
                                     LogAction("SkillLoad", path);
-                                    AppendChat("ZhuaQian", Tr("Skill loaded from: ", "已载入技能文件：", "已載入技能文件：") + path, Color.FromArgb(0, 130, 80));
+                                    AppendChat("ZhuaQian", Tr("Skill loaded from: ", "已载入技能文件：", "已載入技能文件：") + path, ThemeManager.Success);
                                 }
                                 catch (Exception ex)
                                 {
@@ -2063,7 +2063,7 @@ namespace ZhuaQianDesktopApp
             LogAction("SkillPrompt", key);
             AppendChat("ZhuaQian", Tr("Skill prompt inserted into the input box.",
                                        "技能指令已插入输入框。",
-                                       "技能指令已插入輸入框。"), Color.FromArgb(0, 130, 80));
+                                       "技能指令已插入輸入框。"), ThemeManager.Success);
         }
 
         void OrganizeFolder()
@@ -2081,7 +2081,7 @@ namespace ZhuaQianDesktopApp
             folderPath = CleanPath(folderPath);
             if (string.IsNullOrWhiteSpace(folderPath) || !Directory.Exists(folderPath))
             {
-                AppendChat("Error", Tr("Folder not found: ", "找不到文件夹：", "找不到資料夾：") + folderPath, Color.FromArgb(190, 40, 40));
+                AppendChat("Error", Tr("Folder not found: ", "找不到文件夹：", "找不到資料夾：") + folderPath, ThemeManager.Error);
                 return;
             }
             if (!EnsurePermission(Tr("Move/delete files", "移动/删除文件", "移動/刪除檔案"), permFileMoveDelete, true, "Organize Folder")) return;
@@ -2132,7 +2132,7 @@ namespace ZhuaQianDesktopApp
             {
                 SetCurrentTaskStatus("failed", "Organize failed", true);
                 RecordAction("OrganizeFolder", "failed", result.ErrorMessage ?? "Organize failed", folderPath);
-                AppendChat("Error", result.ErrorMessage ?? Tr("Organize failed.", "整理失败。", "整理失敗。"), Color.FromArgb(190, 40, 40));
+                AppendChat("Error", result.ErrorMessage ?? Tr("Organize failed.", "整理失败。", "整理失敗。"), ThemeManager.Error);
                 return;
             }
 
@@ -2142,7 +2142,7 @@ namespace ZhuaQianDesktopApp
             LogAction("OrganizeFolder", "Organized " + folderPath + " through AgentPipeline");
             SetCurrentTaskStatus("ready_for_review", "Organized " + folderPath, true);
             RecordAction("OrganizeFolder", "success", "Files organized under " + folderPath, manifestPath);
-            AppendChat("ZhuaQian", "Files organized into _ZhuaQian_Organized.\r\nRollback manifest:\r\n" + manifestPath, Color.FromArgb(0, 130, 80));
+            AppendChat("ZhuaQian", "Files organized into _ZhuaQian_Organized.\r\nRollback manifest:\r\n" + manifestPath, ThemeManager.Success);
         }
 
         string FileTypeBucket(string ext)
@@ -2206,7 +2206,7 @@ namespace ZhuaQianDesktopApp
                         File.WriteAllText(sfd.FileName, body, new UTF8Encoding(false));
                     }
                     LogAction("CreateDraft", "Created draft: " + sfd.FileName);
-                    AppendChat("ZhuaQian", "Draft created:\r\n" + sfd.FileName, Color.FromArgb(0, 130, 80));
+                    AppendChat("ZhuaQian", "Draft created:\r\n" + sfd.FileName, ThemeManager.Success);
                 }
             }
         }
@@ -2228,7 +2228,7 @@ namespace ZhuaQianDesktopApp
                 input.Text = ask;
                 RefreshAttachLabel();
                 LogAction("ExcelAssistant", "Prepared Excel analysis for " + info.FullName);
-                AppendChat("ZhuaQian", "Excel workbook loaded. Press SEND to analyze and generate formulas/VBA suggestions.", Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", "Excel workbook loaded. Press SEND to analyze and generate formulas/VBA suggestions.", ThemeManager.Success);
             }
         }
 
@@ -2252,7 +2252,7 @@ namespace ZhuaQianDesktopApp
                 sb.AppendLine((i + 1) + ". " + rows[i].Item2 + "  PID " + rows[i].Item3 + "  RAM " + FormatSize(rows[i].Item1));
             sb.AppendLine();
             sb.AppendLine("Advice: close browsers/editors you do not need first. End a process only when you recognize it and unsaved work is not at risk.");
-            AppendChat("ZhuaQian", sb.ToString(), Color.FromArgb(0, 130, 80));
+            AppendChat("ZhuaQian", sb.ToString(), ThemeManager.Success);
 
             string pidText = PromptText("End process", "PID to end:", "");
             if (string.IsNullOrWhiteSpace(pidText)) return;
@@ -2284,7 +2284,7 @@ namespace ZhuaQianDesktopApp
                     {
                         LogAction("EndProcess", "Killed PID " + pid + " (" + processName + ") through AgentPipeline");
                         RecordAction("EndProcess", "success", "Killed PID " + pid + " (" + processName + ")", "");
-                        AppendChat("ZhuaQian", "Ended process PID " + pid + ".", Color.FromArgb(0, 130, 80));
+                        AppendChat("ZhuaQian", "Ended process PID " + pid + ".", ThemeManager.Success);
                     }
                     else if (result.Status == CommandStatus.Cancelled)
                     {
@@ -2387,7 +2387,7 @@ namespace ZhuaQianDesktopApp
                     input.Text = "请识别截图里的文字，提取关键信息，并给我可执行的下一步建议。";
                 RefreshAttachLabel();
                 LogAction("CaptureScreen", "Captured screen to " + path);
-                AppendChat("ZhuaQian", "Screenshot captured. Press SEND to run OCR/analysis with Gemini or Auto provider.", Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", "Screenshot captured. Press SEND to run OCR/analysis with Gemini or Auto provider.", ThemeManager.Success);
             }
             catch (Exception ex)
             {
@@ -2409,13 +2409,13 @@ namespace ZhuaQianDesktopApp
                 LogAction("ClipboardMonitor", "Enabled clipboard monitor");
                 AppendChat("ZhuaQian", Tr("Clipboard monitor is on. New copied text will be summarized automatically.",
                                            "剪贴板监控已开启。新复制的文字会自动总结。",
-                                           "剪貼簿監控已開啟。新複製的文字會自動摘要。"), Color.FromArgb(0, 130, 80));
+                                           "剪貼簿監控已開啟。新複製的文字會自動摘要。"), ThemeManager.Success);
             }
             else
             {
                 clipboardTimer.Stop();
                 LogAction("ClipboardMonitor", "Disabled clipboard monitor");
-                AppendChat("ZhuaQian", Tr("Clipboard monitor is off.", "剪贴板监控已关闭。", "剪貼簿監控已關閉。"), Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", Tr("Clipboard monitor is off.", "剪贴板监控已关闭。", "剪貼簿監控已關閉。"), ThemeManager.Success);
             }
         }
 
@@ -2483,7 +2483,7 @@ namespace ZhuaQianDesktopApp
                     LogAction("IndexFolder", "Indexed " + files.Count + " files / " + knowledgeIndex.Count + " chunks from " + fbd.SelectedPath);
                     SetCurrentTaskStatus("ready_for_review", "Indexed " + knowledgeIndex.Count + " chunks", true);
                     RecordAction("IndexFolder", "success", "Indexed " + files.Count + " files / " + knowledgeIndex.Count + " chunks", indexPath);
-                    AppendChat("ZhuaQian", "Indexed " + files.Count + " files / " + knowledgeIndex.Count + " chunks from:\r\n" + fbd.SelectedPath, Color.FromArgb(0, 130, 80));
+                    AppendChat("ZhuaQian", "Indexed " + files.Count + " files / " + knowledgeIndex.Count + " chunks from:\r\n" + fbd.SelectedPath, ThemeManager.Success);
                 }
                 catch (Exception ex)
                 {
@@ -2897,7 +2897,7 @@ namespace ZhuaQianDesktopApp
             path = CleanPath(path);
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                AppendChat("Error", Tr("Plugin file not found: ", "找不到插件文件：", "找不到外掛檔案：") + path, Color.FromArgb(190, 40, 40));
+                AppendChat("Error", Tr("Plugin file not found: ", "找不到插件文件：", "找不到外掛檔案：") + path, ThemeManager.Error);
                 return;
             }
             if (!EnsurePermission(Tr("Run plugins", "运行插件", "執行外掛"), permPluginRun, true, "Run Plugin")) return;
@@ -2934,7 +2934,7 @@ namespace ZhuaQianDesktopApp
                 LogAction("RunPlugin", "Executed plugin through AgentPipeline: " + path);
                 SetCurrentTaskStatus("ready_for_review", "Plugin finished", true);
                 RecordAction("RunPlugin", "success", "Executed plugin through AgentPipeline: " + path, "");
-                AppendChat("ZhuaQian", "Plugin finished. Its output is ready in the input box.", Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", "Plugin finished. Its output is ready in the input box.", ThemeManager.Success);
             }
             catch (Exception ex)
             {
@@ -3039,7 +3039,7 @@ namespace ZhuaQianDesktopApp
             if (pendingLabels.Count > 0) displayText += "\n[Files] " + string.Join("; ", pendingLabels.ToArray());
             if (needsCurrentInfo) displayText = "[Current info: live search requested]\n" + displayText;
             displayText = "[Mode: " + ModeDisplayName(workMode) + "]\n" + displayText;
-            AppendChat("You", displayText, Color.FromArgb(30, 90, 180));
+            AppendChat("You", displayText, ThemeManager.UserAccent);
 
             messages.Add(new Dictionary<string, object> { { "role", "user" }, { "parts", parts } });
             if (currentTaskTitle == "New task") currentTaskTitle = GenerateTaskTitle();
@@ -3107,7 +3107,7 @@ namespace ZhuaQianDesktopApp
 
                 string modelAfter = providerManager.CurrentModel != null ? providerManager.CurrentModel.Id : ""; if (!string.Equals(modelBefore, modelAfter, StringComparison.OrdinalIgnoreCase)) { string notice = string.IsNullOrWhiteSpace(providerManager.LastFallbackNotice) ? "Auto-switched to fallback model: " + CurrentModelLabel() : providerManager.LastFallbackNotice; reply += "\r\n[" + notice + "]"; try { SaveConfig(); } catch (Exception _ex) { System.Diagnostics.Debug.WriteLine("SaveConfig after model switch: " + _ex.Message); } }
                 RefreshTopModelSwitcher();
-                AppendChat("ZhuaQian", reply, Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", reply, ThemeManager.Success);
                 var modelParts = new ArrayList { NewTextPart(reply) };
                 messages.Add(new Dictionary<string, object> { { "role", "model" }, { "parts", modelParts } });
                 SetCurrentTaskStatus("ready_for_review", "Model reply received", false);
@@ -3115,12 +3115,12 @@ namespace ZhuaQianDesktopApp
                 SaveCurrentTask();
                 if (!string.IsNullOrWhiteSpace(requestedExportFormat) && !SaveTextAsFormat(reply, requestedExportFormat, true, requestedExportPath))
                 {
-                    AppendChat("Error", Tr("File generation failed. Use Save File to choose a path manually.", "文件生成失败。可用“保存文件”手动选择路径。", "檔案產生失敗。可用「儲存檔案」手動選擇路徑。"), Color.FromArgb(190, 40, 40));
+                    AppendChat("Error", Tr("File generation failed. Use Save File to choose a path manually.", "文件生成失败。可用“保存文件”手动选择路径。", "檔案產生失敗。可用「儲存檔案」手動選擇路徑。"), ThemeManager.Error);
                 }
             }
             catch (Exception ex)
             {
-                AppendChat("Error", ex.Message, Color.FromArgb(190, 40, 40));
+                AppendChat("Error", ex.Message, ThemeManager.Error);
                 SetCurrentTaskStatus("failed", "Provider error", false);
                 RecordAction("ChatCompletion", "failed", ex.Message, "");
                 SaveCurrentTask();
@@ -3532,10 +3532,10 @@ namespace ZhuaQianDesktopApp
         Font boldFont;
         void AppendChat(string speaker, string text, Color color)
         {
-            Color bg = Color.White;
-            if (speaker == "You") bg = Color.FromArgb(232, 243, 255);
-            else if (speaker == "ZhuaQian") bg = Color.FromArgb(232, 248, 239);
-            else if (speaker == "Error") bg = Color.FromArgb(255, 235, 235);
+            Color bg = ThemeManager.ChatBack;
+            if (speaker == "You") bg = ThemeManager.UserBubble;
+            else if (speaker == "ZhuaQian") bg = ThemeManager.AssistantBubble;
+            else if (speaker == "Error") bg = ThemeManager.ErrorBubble;
 
             if (boldFont == null || boldFont.FontFamily != chat.Font.FontFamily || boldFont.Size != chat.Font.Size)
             {
@@ -3548,10 +3548,10 @@ namespace ZhuaQianDesktopApp
             chat.SelectionColor = color;
             chat.SelectionFont = boldFont;
             chat.AppendText("  " + speaker + "\r\n");
-            chat.SelectionColor = Color.FromArgb(30, 30, 30);
+            chat.SelectionColor = ThemeManager.ChatBody;
             chat.SelectionFont = chat.Font;
             chat.AppendText("  " + text.Replace("\n", "\n  ") + "\r\n");
-            chat.SelectionBackColor = Color.White;
+            chat.SelectionBackColor = ThemeManager.ChatBack;
             chat.AppendText("\r\n");
             chat.ScrollToCaret();
         }
@@ -3622,7 +3622,7 @@ namespace ZhuaQianDesktopApp
                     input.Text = Tr("Context captured from: ", "已捕获上下文：", "已擷取上下文：") + lastContextTitle;
                     AppendChat("ZhuaQian", Tr("Hotkey captured the active window. Open Tools > Use Current Context to attach details, or ask directly.",
                                                "快捷键已捕获当前窗口。可打开 工具 > 使用当前窗口上下文 附加详情，也可以直接提问。",
-                                               "快捷鍵已擷取目前視窗。可開啟 工具 > 使用目前視窗上下文 附加詳情，也可以直接提問。"), Color.FromArgb(0, 130, 80));
+                                               "快捷鍵已擷取目前視窗。可開啟 工具 > 使用目前視窗上下文 附加詳情，也可以直接提問。"), ThemeManager.Success);
                 }
                 input.Focus();
             }

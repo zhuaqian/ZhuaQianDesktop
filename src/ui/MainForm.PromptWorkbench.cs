@@ -23,7 +23,7 @@ namespace ZhuaQianDesktopApp
                     LogAction("PromptWorkbench", "Inserted assembled prompt");
                     AppendChat("ZhuaQian", Tr("Prompt assembly inserted into the input box.",
                                                "Prompt 已组装并插入输入框。",
-                                               "Prompt 已組裝並插入輸入框。"), Color.FromArgb(0, 130, 80));
+                                               "Prompt 已組裝並插入輸入框。"), ThemeManager.Success);
                 }
             }
         }

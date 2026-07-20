@@ -34,7 +34,7 @@ namespace ZhuaQianDesktopApp.Ui
             if (report != null)
             {
                 string s = report.Status ?? "";
-                if (s == "passed") status.ForeColor = Color.FromArgb(0, 130, 80);
+                if (s == "passed") status.ForeColor = ThemeManager.Success;
                 else if (s == "build-failed" || s == "test-failed") status.ForeColor = Color.FromArgb(192, 0, 0);
                 else status.ForeColor = Color.FromArgb(150, 110, 0);
             }

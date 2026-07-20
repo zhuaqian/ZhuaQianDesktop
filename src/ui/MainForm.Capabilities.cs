@@ -68,7 +68,7 @@ namespace ZhuaQianDesktopApp
             }
             catch (Exception ex)
             {
-                AppendChat("Error", Tr("Model call failed: ", "模型调用失败：", "模型呼叫失敗：") + ex.Message, Color.FromArgb(190, 40, 40));
+                AppendChat("Error", Tr("Model call failed: ", "模型调用失败：", "模型呼叫失敗：") + ex.Message, ThemeManager.Error);
                 return;
             }
             var result = SaveTextFileViaPipeline(path, content, "Save markdown: " + path);
@@ -97,7 +97,7 @@ namespace ZhuaQianDesktopApp
             }
             catch (Exception ex)
             {
-                AppendChat("Error", Tr("Model call failed: ", "模型调用失败：", "模型呼叫失敗：") + ex.Message, Color.FromArgb(190, 40, 40));
+                AppendChat("Error", Tr("Model call failed: ", "模型调用失败：", "模型呼叫失敗：") + ex.Message, ThemeManager.Error);
                 return;
             }
             int ok = 0;
@@ -110,7 +110,7 @@ namespace ZhuaQianDesktopApp
             AppendChat("ZhuaQian",
                 Tr("Generated site with ", "已生成网站，包含 ", "已產生網站，包含 ") + files.Count + " " +
                 Tr("files in ", "个文件，位于 ", "個檔案，位於 ") + dir,
-                Color.FromArgb(0, 130, 80));
+                ThemeManager.Success);
             input.Clear();
         }
 
@@ -126,7 +126,7 @@ namespace ZhuaQianDesktopApp
                 new string[] { "优化", "優化", "压缩", "壓縮", "optimize", "compress" }));
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                AppendChat("Error", Tr("Missing office file path. Example: ", "缺少 Office 文件路径。示例：", "缺少 Office 檔案路徑。範例：") + "优化 PPT C:\\work\\deck.pptx", Color.FromArgb(190, 40, 40));
+                AppendChat("Error", Tr("Missing office file path. Example: ", "缺少 Office 文件路径。示例：", "缺少 Office 檔案路徑。範例：") + "优化 PPT C:\\work\\deck.pptx", ThemeManager.Error);
                 return;
             }
 
@@ -139,13 +139,13 @@ namespace ZhuaQianDesktopApp
                 else if (lower.EndsWith(".xlsx")) res = OfficeOptimizer.OptimizeXlsx(path);
                 else
                 {
-                    AppendChat("Error", Tr("Unsupported type; use .pptx/.docx/.xlsx", "不支持的类型，请使用 .pptx/.docx/.xlsx", "不支援的類型，請使用 .pptx/.docx/.xlsx"), Color.FromArgb(190, 40, 40));
+                    AppendChat("Error", Tr("Unsupported type; use .pptx/.docx/.xlsx", "不支持的类型，请使用 .pptx/.docx/.xlsx", "不支援的類型，請使用 .pptx/.docx/.xlsx"), ThemeManager.Error);
                     return;
                 }
             }
             catch (Exception ex)
             {
-                AppendChat("Error", Tr("Optimize failed: ", "优化失败：", "優化失敗：") + ex.Message, Color.FromArgb(190, 40, 40));
+                AppendChat("Error", Tr("Optimize failed: ", "优化失败：", "優化失敗：") + ex.Message, ThemeManager.Error);
                 return;
             }
 
@@ -153,9 +153,9 @@ namespace ZhuaQianDesktopApp
                 Path.GetFileNameWithoutExtension(path) + "_optimized" + Path.GetExtension(path));
             var r = SaveBinaryFileViaPipeline(outPath, res.Bytes, "Optimize office: " + outPath);
             if (r != null && r.Status == CommandStatus.Success)
-                AppendChat("ZhuaQian", Tr("Optimized ", "已优化 ", "已優化 ") + path + " -> " + outPath + " (" + res.Note + ")", Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", Tr("Optimized ", "已优化 ", "已優化 ") + path + " -> " + outPath + " (" + res.Note + ")", ThemeManager.Success);
             else
-                AppendChat("Error", Tr("Optimize write failed: ", "优化写入失败：", "優化寫入失敗：") + (r == null ? "no result" : r.ErrorMessage), Color.FromArgb(190, 40, 40));
+                AppendChat("Error", Tr("Optimize write failed: ", "优化写入失败：", "優化寫入失敗：") + (r == null ? "no result" : r.ErrorMessage), ThemeManager.Error);
             input.Clear();
         }
 
@@ -201,7 +201,7 @@ namespace ZhuaQianDesktopApp
             {
                 LogAction("WriteFile", "Saved " + kind + " -> " + path);
                 RecordAction("WriteFile", "success", "Saved " + kind + " -> " + path, "");
-                AppendChat("ZhuaQian", Tr("Saved ", "已保存 ", "已儲存 ") + kind + ": " + path, Color.FromArgb(0, 130, 80));
+                AppendChat("ZhuaQian", Tr("Saved ", "已保存 ", "已儲存 ") + kind + ": " + path, ThemeManager.Success);
             }
             else if (result.Status == CommandStatus.Cancelled)
             {
