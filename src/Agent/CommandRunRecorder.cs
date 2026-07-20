@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -83,17 +84,32 @@ namespace ZhuaQianDesktopApp.Agent
         readonly ICommandRecorder inner;
         readonly PermissionGate permissionGate;
         readonly string rootDirectory;
+        readonly HashSet<string> allowedBuildTestPrograms;
 
         public GuardedCommandRunRecorder(string rootDirectory)
-            : this(rootDirectory, null, null)
+            : this(rootDirectory, null, null, null)
         {
         }
 
         public GuardedCommandRunRecorder(string rootDirectory, PermissionGate permissionGate, ICommandRecorder inner)
+            : this(rootDirectory, permissionGate, inner, null)
+        {
+        }
+
+        // allowedPrograms: build/test executables (e.g. "dotnet", "npm", "cargo")
+        // detected by ProjectAnalyzer for the target repo. When set, commands
+        // whose effective program is in this set AND run within root are allowed
+        // automatically, so the coding agent can build/test arbitrary repos, not
+        // just this one's build.ps1 / run-tests.ps1. Null/empty keeps the legacy
+        // powershell+script-only behavior.
+        public GuardedCommandRunRecorder(string rootDirectory, PermissionGate permissionGate, ICommandRecorder inner, IEnumerable<string> allowedPrograms)
         {
             this.rootDirectory = string.IsNullOrWhiteSpace(rootDirectory) ? "" : Path.GetFullPath(rootDirectory);
             this.permissionGate = permissionGate ?? new PermissionGate();
             this.inner = inner ?? new CommandRunRecorder();
+            this.allowedBuildTestPrograms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (allowedPrograms != null)
+                foreach (var p in allowedPrograms) this.allowedBuildTestPrograms.Add(p);
         }
 
         public AgentPlanStepResult Run(string fileName, string arguments, string workingDirectory = "")
@@ -115,16 +131,49 @@ namespace ZhuaQianDesktopApp.Agent
                 return false;
             if (!IsWithinRoot(workingDirectory)) return false;
             string exe = Path.GetFileName(fileName ?? "");
-            if (!string.Equals(exe, "powershell", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(exe, "powershell.exe", StringComparison.OrdinalIgnoreCase))
-                return false;
+            bool isPowerShell = string.Equals(exe, "powershell", StringComparison.OrdinalIgnoreCase)
+                             || string.Equals(exe, "powershell.exe", StringComparison.OrdinalIgnoreCase);
 
-            string args = arguments ?? "";
-            if (ContainsScript(args, @".\build.ps1")) return true;
-            if (ContainsScript(args, @".\src\scripts\run-tests.ps1")) return true;
-            if (ContainsScript(args, @"build.ps1")) return true;
-            if (ContainsScript(args, @"src\scripts\run-tests.ps1")) return true;
+            // Legacy: powershell running this project's own build/test scripts.
+            if (isPowerShell)
+            {
+                string args = arguments ?? "";
+                if (ContainsScript(args, @".\build.ps1")) return true;
+                if (ContainsScript(args, @".\src\scripts\run-tests.ps1")) return true;
+                if (ContainsScript(args, @"build.ps1")) return true;
+                if (ContainsScript(args, @"src\scripts\run-tests.ps1")) return true;
+            }
+
+            // Generalized: any build/test tool detected by ProjectAnalyzer (dotnet,
+            // npm, pnpm, cargo, go, mvn, gradle, make, ...). Unwraps the
+            // `powershell -Command <prog>` wrapper FixLoopRunner uses so the real
+            // program is what gets checked. Only honored within root.
+            string prog = EffectiveProgram(fileName, arguments);
+            if (allowedBuildTestPrograms.Contains(prog)) return true;
             return false;
+        }
+
+        // Resolve the effective build/test program from a command, unwrapping a
+        // `powershell -Command <prog> ...` wrapper used by FixLoopRunner.
+        static string EffectiveProgram(string fileName, string arguments)
+        {
+            string exe = (Path.GetFileName(fileName ?? "") ?? "").ToLowerInvariant();
+            if (exe == "powershell" || exe == "powershell.exe")
+            {
+                string args = arguments ?? "";
+                int idx = args.ToLowerInvariant().IndexOf("-command");
+                if (idx >= 0)
+                {
+                    string after = args.Substring(idx + 8).Trim();
+                    int sp = after.IndexOf(' ');
+                    string prog = sp > 0 ? after.Substring(0, sp) : after;
+                    prog = prog.Trim().ToLowerInvariant();
+                    if (prog.EndsWith(".exe")) prog = prog.Substring(0, prog.Length - 4);
+                    return prog;
+                }
+                return exe == "powershell.exe" ? "powershell" : exe;
+            }
+            return exe.EndsWith(".exe") ? exe.Substring(0, exe.Length - 4) : exe;
         }
 
         bool ContainsScript(string arguments, string script)

@@ -26,6 +26,23 @@ namespace ZhuaQianDesktopApp.Agent
             var report = new CodingAgentSessionReport();
             report.Goal = plan == null ? "" : plan.Goal ?? "";
 
+            // Detect the real build/test commands for the target repo instead of
+            // hardcoding this project's build.ps1 / run-tests.ps1, so Full Review
+            // runs on arbitrary repositories (dotnet, npm, cargo, ...). When no
+            // tool is detected, fall back to the legacy scripts (keeps behavior
+            // for this repo and for the unit test's empty temp dir).
+            var profile = new Coding.ProjectAnalyzer().Analyze(RootDirectory);
+            string buildCmd = profile.HasBuild ? profile.BuildCommand
+                : @"powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1";
+            string testCmd = profile.HasTest ? profile.TestCommand
+                : @"powershell -NoProfile -ExecutionPolicy Bypass -File .\src\scripts\run-tests.ps1";
+            this.BuildCommand = buildCmd;
+            this.TestCommand = testCmd;
+
+            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            AddDetectedProgram(allowed, buildCmd);
+            AddDetectedProgram(allowed, testCmd);
+
             var scan = WorkspaceScanSummary.Capture(RootDirectory);
             report.WorkspaceScan = scan.ToMarkdown();
             report.DiffSummary = BuildDiffSummary(scan);
@@ -33,9 +50,12 @@ namespace ZhuaQianDesktopApp.Agent
 
             if (RunBuildAndTest)
             {
-                ICommandRecorder recorder = Recorder ?? new GuardedCommandRunRecorder(RootDirectory);
-                report.BuildResult = recorder.Run("powershell", "-NoProfile -ExecutionPolicy Bypass -File .\\build.ps1", RootDirectory);
-                report.TestResult = recorder.Run("powershell", "-NoProfile -ExecutionPolicy Bypass -File .\\src\\scripts\\run-tests.ps1", RootDirectory);
+                ICommandRecorder recorder = Recorder ?? new GuardedCommandRunRecorder(RootDirectory, null, null, allowed);
+                string bProg, bArgs, tProg, tArgs;
+                SplitCommand(buildCmd, out bProg, out bArgs);
+                SplitCommand(testCmd, out tProg, out tArgs);
+                report.BuildResult = recorder.Run(bProg, bArgs, RootDirectory);
+                report.TestResult = recorder.Run(tProg, tArgs, RootDirectory);
             }
             else
             {
@@ -61,6 +81,26 @@ namespace ZhuaQianDesktopApp.Agent
                 shown++;
             }
             return sb.ToString().Trim();
+        }
+
+        static void SplitCommand(string cmd, out string program, out string args)
+        {
+            if (string.IsNullOrWhiteSpace(cmd)) { program = ""; args = ""; return; }
+            string s = cmd.TrimStart();
+            int sp = s.IndexOf(' ');
+            if (sp < 0) { program = s.Trim(); args = ""; }
+            else { program = s.Substring(0, sp).Trim(); args = s.Substring(sp + 1).Trim(); }
+        }
+
+        static void AddDetectedProgram(HashSet<string> set, string cmd)
+        {
+            if (string.IsNullOrWhiteSpace(cmd)) return;
+            string s = cmd.Trim();
+            int sp = s.IndexOf(' ');
+            string prog = sp > 0 ? s.Substring(0, sp) : s;
+            prog = prog.Trim().ToLowerInvariant();
+            if (prog.EndsWith(".exe")) prog = prog.Substring(0, prog.Length - 4);
+            set.Add(prog);
         }
     }
 

@@ -1,6 +1,6 @@
 # ZhuaQian Desktop
 
-ZhuaQian Desktop is a free, open-source Windows AI workbench prototype for local work, document handling, and permission-controlled desktop actions.
+ZhuaQian Desktop is a free, open-source Windows AI workbench that pairs a permission-controlled desktop automation assistant with an autonomous coding agent. On your own machine it handles local work and documents; it can also diagnose build/test failures in a code project, generate patches, run tests, and commit fixes — every side effect routed through the same guarded, auditable pipeline.
 
 It is built around a simple idea: an AI assistant should be useful on your own Windows machine without hiding local side effects. File reads, exports, cloud uploads, plugins, process actions, and folder organization should be visible, permission-aware, and auditable.
 
@@ -17,6 +17,7 @@ It is built around a simple idea: an AI assistant should be useful on your own W
 - Use the desktop Prompt Workbench to assemble programmer, office, and media workflows with local memory, permission checks, audit records, and current task attachments
 - Review structured agent plans and execute recognized plan steps through the guarded `AgentPipeline`
 - Run permission-gated local actions for selected tasks: open targets, type text, send hotkeys/keys, click coordinates, wait, organize folders, run plugins, rollback organized files, and end approved PID-based processes
+- Act as an autonomous coding agent: scan a project, locate its build/test script, run tests, read failures, generate and apply patches through the guarded pipeline, and commit fixes (DiagnoseFix / BuildFixLoop / CodePatcher / GitWorkflow)
 - Share/import task packages, share over LAN, use relay sharing, and start/join live sessions when network permission is enabled
 - Store API keys with Windows DPAPI for the current user
 - Gate risky actions behind permissions, Power mode, approval cards, and audit/output records
@@ -25,7 +26,7 @@ It is built around a simple idea: an AI assistant should be useful on your own W
 
 Implemented in the current preview:
 
-- Desktop workbench UI, task history, provider routing, file parsing, real exports, outputs history, local knowledge index, command palette, permission settings, approval cards, audit log, plugin runner, rollback, basic computer control, plan review with first-step execution, process snapshot monitoring scaffold, and a read-only local activity monitor.
+- Desktop workbench UI, task history, provider routing, file parsing, real exports, outputs history, local knowledge index, command palette, permission settings, approval cards, audit log, plugin runner, rollback, basic computer control, plan review with first-step execution, process snapshot monitoring scaffold, and a read-only local activity monitor — and an autonomous coding-agent loop (diagnose build failure → patch → test → commit through the guarded pipeline).
 
 Partly implemented:
 

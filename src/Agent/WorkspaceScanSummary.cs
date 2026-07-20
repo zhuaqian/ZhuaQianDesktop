@@ -15,8 +15,8 @@ namespace ZhuaQianDesktopApp.Agent
         public string RootDirectory = "";
         public List<string> ChangedFiles = new List<string>();
         public int ChangedFileCount { get { return ChangedFiles.Count; } }
-        public string BuildCommand = @"powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1";
-        public string TestCommand = @"powershell -NoProfile -ExecutionPolicy Bypass -File .\src\scripts\run-tests.ps1";
+        public string BuildCommand = "";
+        public string TestCommand = "";
         public List<string> RiskNotes = new List<string>();
 
         // Capture a summary of the working tree (changed files via git, then risk
@@ -27,6 +27,18 @@ namespace ZhuaQianDesktopApp.Agent
             var summary = new WorkspaceScanSummary();
             summary.RootDirectory = rootDirectory ?? "";
             summary.ChangedFiles = GitChangedFiles(rootDirectory);
+
+            // Detect the real build/test commands for this repo instead of
+            // hardcoding this project's scripts. Falls back to "(not detected)"
+            // when no known build/test tool exists.
+            try
+            {
+                var profile = new Coding.ProjectAnalyzer().Analyze(rootDirectory);
+                summary.BuildCommand = profile.HasBuild ? profile.BuildCommand : "(not detected)";
+                summary.TestCommand = profile.HasTest ? profile.TestCommand : "(not detected)";
+            }
+            catch (Exception ex) { Debug.WriteLine("WorkspaceScanSummary detect: " + ex.Message); }
+
             summary.RiskNotes = CollectRiskNotes(rootDirectory, summary.ChangedFiles);
             return summary;
         }
@@ -146,8 +158,8 @@ namespace ZhuaQianDesktopApp.Agent
                 }
             }
             sb.AppendLine();
-            sb.AppendLine("Build command: `" + BuildCommand + "`");
-            sb.AppendLine("Test command: `" + TestCommand + "`");
+            sb.AppendLine("Build command: " + (string.IsNullOrEmpty(BuildCommand) ? "(not detected)" : "`" + BuildCommand + "`"));
+            sb.AppendLine("Test command: " + (string.IsNullOrEmpty(TestCommand) ? "(not detected)" : "`" + TestCommand + "`"));
             sb.AppendLine();
             sb.AppendLine("Risk notes:");
             foreach (var note in RiskNotes) sb.AppendLine("  - " + note);

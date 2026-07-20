@@ -208,3 +208,21 @@
 
 ### 边界提醒
 本回合改了 `MainForm.DiagnoseFix.cs`（main-form 家族 partial）与 `AgentPipelineFactory.cs`（Process X 声明拥有的构建/工厂文件）。前者本会话已认领；后者为加一个可选形参（默认 null，向后兼容现有 24 处 `Create` 调用），无行为回归，但建议 Process X 知悉以免重复改同一区域。
+
+---
+
+## 2026-07-20 编码智能体构建/测试命令通用化（跨仓库）
+
+### 动机
+用户确认"需要我拍板的都你做"，继续推进 D 模块债：`WorkspaceScanSummary` 硬编码本项目。深挖发现真正的阻断点是 **`GuardedCommandRunRecorder` 允许清单只认 `build.ps1`/`run-tests.ps1`**，加上 `FixLoopRunner` 把命令包成 `powershell -Command <cmd>`——导致编码智能体在外国仓库（dotnet/npm/cargo/go/mvn/gradle/make）跑构建会被默认 `PermissionGate` Deny，闭环根本起不来。这正是"能修别人仓库"的核心缺口。
+
+### 已做（4 文件，保留既有测试契约）
+- `src/Agent/CommandRunRecorder.cs`：`GuardedCommandRunRecorder` 增可选 `allowedPrograms`（默认空=旧行为）；`IsKnownProjectBuildOrTest` 解析 `powershell -Command <prog>` 后的真实程序，命中允许集且 within root 即放行；新增 `EffectiveProgram` 辅助。
+- `src/Agent/DiagnoseFixExecutor.cs`：Analyze 后把 `profile.BuildCommand/TestCommand` 的程序名注入 `GuardedCommandRunRecorder`，外国仓库命令在闭环内真正执行。
+- `src/Agent/CodingAgentSession.cs`：`Run` 用 `ProjectAnalyzer` 探测真实命令并运行（探测不到回退 build.ps1 以保 `TestCodingAgentSession` 绿）。
+- `src/Agent/WorkspaceScanSummary.cs`：`Capture` 用 `ProjectAnalyzer` 填 `BuildCommand/TestCommand`（不再写死），空值显示 `(not detected)`。
+
+### 验证
+- `check-architecture.ps1` PASSED。
+- grep：所有 `build.ps1`/`run-tests.ps1` 残留均在遗留白名单 / 回退 / 探测器 / 测试夹具中，无破坏外国仓库的硬编码执行路径。
+- 沙箱禁 csc，未经真编译；需用户本地 `build.ps1`+`run-tests.ps1` 确认全绿（预期 `TestCodingAgentSession`/`TestWorkspaceScanSummary` 契约不变）。

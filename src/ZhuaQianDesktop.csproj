@@ -48,109 +48,18 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
+  <!-- Self-syncing compile set: MSBuild globs every .cs under src/ so newly added
+       modules are compiled automatically — no manual <Compile Include> registration.
+       This removes the recurring "forgot to register in csproj" build break that
+       build.ps1 / run-tests.ps1 already avoided via dynamic enumeration.
+       Exclusions mirror the build scripts:
+         - Program.cs / MainForm.cs / TaskInfo.cs : duplicate entry points / types
+           (CS0017 / CS0262 / CS0101); the production EXE builds from ZhuaQianDesktop.cs.
+         - tests/** : unit tests compile + run via src/scripts/run-tests.ps1 (/main:TestRunner);
+           kept out of the shipped EXE to avoid multiple entry points (CS0017).
+         - packages/** : NuGet restore output, not source. -->
   <ItemGroup>
-    <Compile Include="ZhuaQianDesktop.cs" />
-    <Compile Include="Models\TaskTimelineItem.cs" />
-    <Compile Include="Core\AuditLog.cs" />
-    <Compile Include="Core\ConfigStore.cs" />
-    <Compile Include="Core\LanShareServer.cs" />
-    <Compile Include="Core\OutputsHub.cs" />
-    <Compile Include="Core\PackageBuilder.cs" />
-    <Compile Include="Core\PermissionGate.cs" />
-    <Compile Include="Core\PromptLibrary.cs" />
-    <Compile Include="Core\ShareCrypto.cs" />
-    <Compile Include="Documents\OfficeExporter.cs" />
-    <Compile Include="Documents\Redactor.cs" />
-    <Compile Include="Documents\OfficeTemplateLibrary.cs" />
-    <Compile Include="Knowledge\Chunker.cs" />
-    <Compile Include="Knowledge\VectorIndex.cs" />
-    <Compile Include="Plugins\PluginManifest.cs" />
-    <Compile Include="Agent\Hooks\HookKind.cs" />
-    <Compile Include="Agent\Hooks\HookContext.cs" />
-    <Compile Include="Agent\Hooks\IPluginHook.cs" />
-    <Compile Include="Agent\Hooks\HookRegistry.cs" />
-    <Compile Include="Agent\WorkspaceScanSummary.cs" />
-    <Compile Include="Agent\CommandRunRecorder.cs" />
-    <Compile Include="Agent\CodingAgentSession.cs" />
-    <Compile Include="Agent\IAgentCommand.cs" />
-    <Compile Include="Agent\AgentPlan.cs" />
-    <Compile Include="Agent\AgentPlanCommandMapper.cs" />
-    <Compile Include="Agent\ICommandExecutor.cs" />
-    <Compile Include="Agent\IAsyncCommandExecutor.cs" />
-    <Compile Include="Agent\CommandResult.cs" />
-    <Compile Include="Agent\AgentPipeline.cs" />
-    <Compile Include="Agent\AgentPipelineFactory.cs" />
-    <Compile Include="Agent\BrowserFetchExecutor.cs" />
-    <Compile Include="Agent\Coding\ProjectAnalyzer.cs" />
-    <Compile Include="Agent\Coding\CodePatcher.cs" />
-    <Compile Include="Agent\Coding\ErrorParser.cs" />
-    <Compile Include="Agent\Coding\BuildFixLoop.cs" />
-    <Compile Include="Agent\Coding\GitWorkflow.cs" />
-    <Compile Include="Agent\Coding\CodingLoopSession.cs" />
-    <Compile Include="Agent\BrowserControlExecutor.cs" />
-    <Compile Include="Agent\ScreenCaptureExecutor.cs" />
-    <Compile Include="Agent\PatchExecutor.cs" />
-    <Compile Include="Agent\GitWorkflowExecutor.cs" />
-    <Compile Include="Agent\DiagnoseFixExecutor.cs" />
-    <Compile Include="Agent\TaskAgentRunner.cs" />
-    <Compile Include="Agent\FixLoopRunner.cs" />
-    <Compile Include="Agent\ExportFileExecutor.cs" />
-    <Compile Include="Agent\OfficeTemplateExecutor.cs" />
-    <Compile Include="Agent\OrganizeFolderExecutor.cs" />
-    <Compile Include="Agent\PluginRunExecutor.cs" />
-    <Compile Include="Agent\ProcessManageExecutor.cs" />
-    <Compile Include="Agent\ComputerControlExecutor.cs" />
-    <Compile Include="Agent\RollbackExecutor.cs" />
-    <Compile Include="Agent\WebSearchExecutor.cs" />
-    <Compile Include="Agent\AgentPlanState.cs" />
-    <Compile Include="Agent\AgentPlanRunner.cs" />
-    <Compile Include="Tools\ApprovalCard.cs" />
-    <Compile Include="Tools\CommandParser.cs" />
-    <Compile Include="Tools\ExecutionTimeline.cs" />
-    <Compile Include="Tools\FolderOrganizer.cs" />
-    <Compile Include="Tools\PluginRunner.cs" />
-    <Compile Include="Tools\ProcessSnapshotCollector.cs" />
-    <Compile Include="Tools\SandboxProgressPanel.cs" />
-    <Compile Include="Tools\SmartCommand.cs" />
-    <Compile Include="Tools\TimelineControl.cs" />
-    <Compile Include="Tools\UndoRedoManager.cs" />
-    <Compile Include="Tools\WebSearchClient.cs" />
-    <Compile Include="Tools\BrowserRenderClient.cs" />
-    <Compile Include="Tools\WebResearchFetcher.cs" />
-    <Compile Include="Tools\WebPageReportBuilder.cs" />
-    <Compile Include="Tools\BrowserAgentClient.cs" />
-    <Compile Include="Tools\DesktopScreenCapture.cs" />
-    <Compile Include="Tools\SystemDiagnostics.cs" />
-    <Compile Include="providers\AlibabaQianwenClient.cs" />
-    <Compile Include="providers\GeminiClient.cs" />
-    <Compile Include="providers\IProviderClient.cs" />
-    <Compile Include="providers\LocalClient.cs" />
-    <Compile Include="providers\ModelRegistry.cs" />
-    <Compile Include="providers\OpenAIClient.cs" />
-    <Compile Include="providers\OpenRouterClient.cs" />
-    <Compile Include="providers\ProviderManager.cs" />
-    <Compile Include="providers\ShareClient.cs" />
-    <Compile Include="providers\StreamingBridge.cs" />
-    <Compile Include="providers\TencentWorkBuddyClient.cs" />
-    <Compile Include="providers\ZhipuAIGLMClient.cs" />
-    <Compile Include="ui\MainForm.Export.cs" />
-    <Compile Include="ui\MainForm.Settings.cs" />
-    <Compile Include="ui\MainForm.LocalActionRouting.cs" />
-    <Compile Include="ui\MainForm.LiveSession.cs" />
-    <Compile Include="ui\MainForm.Monitoring.cs" />
-    <Compile Include="ui\MainForm.PlanExecution.cs" />
-    <Compile Include="ui\MainForm.PlanReview.cs" />
-    <Compile Include="ui\MainForm.PromptWorkbench.cs" />
-    <Compile Include="ui\PlanReviewDialog.cs" />
-    <Compile Include="ui\OfficeGenerateDialog.cs" />
-    <Compile Include="ui\CodingAgentReportDialog.cs" />
-    <Compile Include="ui\MainForm.CodingAgentReview.cs" />
-    <Compile Include="ui\PromptWorkbenchDialog.cs" />
-    <Compile Include="ui\MainForm.Share.cs" />
-    <Compile Include="ui\MainForm.DiagnoseFix.cs" />
-    <Compile Include="ui\DiagnoseFixDialog.cs" />
-    <Compile Include="ui\RightPanel.cs" />
-    <Compile Include="ui\SettingsDialog.cs" />
+    <Compile Include="**\*.cs" Exclude="Program.cs;MainForm.cs;TaskInfo.cs;tests\**;packages\**" />
   </ItemGroup>
   <!-- Unit tests are compiled and run via src/scripts/run-tests.ps1 (csc + /main:TestRunner),
        NOT via this csproj. Keeping them out of the shipped EXE avoids multiple entry points

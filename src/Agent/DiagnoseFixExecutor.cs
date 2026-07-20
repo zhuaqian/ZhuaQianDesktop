@@ -71,10 +71,17 @@ namespace ZhuaQianDesktopApp.Agent
             string testCommand = NormalizeCommand(GetString(command, "testCommand"));
             if (string.IsNullOrWhiteSpace(testCommand)) testCommand = NormalizeCommand(profile.TestCommand);
 
+            // Allow the detected build/test executables so the loop can actually
+            // run them on the target repo (dotnet, npm, cargo, ...) instead of
+            // being denied by the default PermissionGate. Within-root only.
+            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            AddDetectedProgram(allowed, profile.BuildCommand);
+            AddDetectedProgram(allowed, profile.TestCommand);
+
             int maxIt;
             if (!int.TryParse(GetString(command, "maxIterations"), out maxIt) || maxIt <= 0) maxIt = 3;
 
-            var recorder = new GuardedCommandRunRecorder(root);
+            var recorder = new GuardedCommandRunRecorder(root, null, null, allowed);
             var strategy = new DiagnoseFixFixStrategy(profile);
             var fixLoop = new FixLoopRunner(pipeline, root, recorder, strategy, maxIt);
 
@@ -171,6 +178,20 @@ namespace ZhuaQianDesktopApp.Agent
             p = p.Trim();
             if (p.StartsWith("a/") || p.StartsWith("b/")) p = p.Substring(2);
             return p;
+        }
+
+        // Extract the executable name from a detected command (e.g. "dotnet build"
+        // -> "dotnet", "powershell -File .\build.ps1" -> "powershell") so it can
+        // be whitelisted in GuardedCommandRunRecorder.
+        static void AddDetectedProgram(HashSet<string> set, string cmd)
+        {
+            if (string.IsNullOrWhiteSpace(cmd)) return;
+            string s = cmd.Trim();
+            int sp = s.IndexOf(' ');
+            string prog = sp > 0 ? s.Substring(0, sp) : s;
+            prog = prog.Trim().ToLowerInvariant();
+            if (prog.EndsWith(".exe")) prog = prog.Substring(0, prog.Length - 4);
+            set.Add(prog);
         }
 
         static string GetString(IAgentCommand command, string key)
