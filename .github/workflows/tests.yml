@@ -11,7 +11,7 @@ jobs:
   test:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build and run unit tests
         shell: pwsh
         run: |
@@ -44,7 +44,7 @@ jobs:
           Compress-Archive -Path (Join-Path $dist '*') -DestinationPath $zip -Force
           Write-Host "Created $zip"
       - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ZhuaQianDesktop-${{ github.ref_name }}
           path: ZhuaQianDesktop-${{ github.ref_name }}.zip
