@@ -32,6 +32,7 @@ namespace ZhuaQianDesktopApp
             if (string.IsNullOrWhiteSpace(raw)) return false;
             string trimmed = raw.Trim();
             if (!trimmed.StartsWith("/")) return false;
+            if (TryRoutePublishAndBrowser(trimmed)) return true;
 
             var parsed = new Tools.CommandParser().Parse(trimmed);
             if (!parsed.IsCommand) return false;
@@ -149,6 +150,7 @@ namespace ZhuaQianDesktopApp
             if (string.IsNullOrWhiteSpace(raw)) return false;
             string text = raw.Trim();
             if (text.StartsWith("/")) return false;
+            if (TryRoutePublishAndBrowser(text)) return true;
             string lower = text.ToLowerInvariant();
 
             if (LooksLikeComputerDiagnosisRequest(lower))

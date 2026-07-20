@@ -3,6 +3,12 @@
 local-first Windows AI 桌面智能体（C# + .NET Framework 4.8 WinForms）。核心铁律：
 **所有真实副作用必须过 `Command → PermissionGate →(Approval)→ Executor → AuditLog + OutputsHub` 单一管道**。
 
+## 产品定位（用户口述 2026-07-20）
+
+用户定义的产品范围：控制电脑 / 改本地文件 / 优化 / PPT / 生成 HTML 演示文稿 / 连服务器(SSH) / 线上改代码 / 连 GitHub(开源上传仓库) / web 登录验证 / 内置开源浏览器。
+- 已实现：控制电脑、改文件、优化、PPT、HTML 演示文稿、连服务器(SSH)、线上改代码、**内置浏览器(Playwright/Chromium，开源 MIT，模块 G/H)** —— 代码级，待本地 build.ps1 编译验证。
+- **已建(代码级, 待本地 build.ps1 编译 + 用户 PAT)**：① 多平台开源发布 `GitHostPublisher`(`IGitHost`: GitHub/Gitee/GitLab；REST 建公开仓 + git CLI token-in-URL 推送，走 `PublishRepo` 单管道；PAT 存 `ConfigStore` `<host>_token`，由 `/settoken` 或自然语言设置，不进命令参数/审计日志)；② 浏览器登录态保存/恢复(`BrowserAgentClient.SaveSessionAsync` + `BrowserControlExecutor` 的 login/savesession/loadsession，经 `BrowserSessionHub` 共享会话跨命令复用，复用内置 Chromium)。`MainForm.Publish.cs` 路由 `/publish`、`/settoken`、`/browser` 及自然语言。
+
 ## 构建 / CI 约定（关键，违反即编译失败）
 
 - 入口点：`src/ZhuaQianDesktop.cs` 的 `Main()`。生产 EXE 由 `src/build.ps1`（csc 逐文件编译）产出。

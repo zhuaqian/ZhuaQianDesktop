@@ -44,9 +44,11 @@ namespace ZhuaQianDesktopApp.Agent
             // agent *complete work* in a real browser (click/fill/submit) and *see*
             // the desktop before acting (screenshot -> verify), both through the
             // same permission pipeline (permNetworkUpload / permScreenshot).
-            pipeline.Register(new BrowserControlExecutor(new BrowserAgentClient(webSearchClient), System.IO.Path.Combine(configDir, "browser-shots")));
+            pipeline.Register(new BrowserControlExecutor(new BrowserAgentClient(webSearchClient), System.IO.Path.Combine(configDir, "browser-shots"), System.IO.Path.Combine(configDir, "browser-sessions")));
             pipeline.Register(new ScreenCaptureExecutor(new DesktopScreenCapture(), System.IO.Path.Combine(configDir, "screen-shots")));
             pipeline.Register(new RemoteHostExecutor(System.IO.Path.Combine(configDir, "remote-output")));
+            // Epic D (publish): open-source repo upload to GitHub / Gitee / GitLab.
+            pipeline.Register(new GitHostPublisherExecutor(configDir));
             // Epic D: coding-agent closed loop building blocks.
             // configDir is the app config root; the project root for patches/git
             // is the parent of configDir (fall back to current directory).

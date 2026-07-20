@@ -131,6 +131,17 @@ namespace ZhuaQianDesktopApp.Tools
             catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserAgentClient screenshot: " + ex.Message); return new byte[0]; }
         }
 
+        public async Task<BrowserActionResult> SaveSessionAsync(string path, CancellationToken token = default(CancellationToken))
+        {
+            if (!IsStarted || context == null) return BrowserActionResult.Fail("not started");
+            try
+            {
+                await context.StorageStateAsync(new BrowserContextStorageStateOptions { Path = path }).ConfigureAwait(false);
+                return BrowserActionResult.Success("session saved: " + path);
+            }
+            catch (Exception ex) { return BrowserActionResult.Fail("save session failed: " + ex.Message); }
+        }
+
         public async Task<BrowserActionResult> NavigateAsync(string url, int timeoutMs = 30000, CancellationToken token = default(CancellationToken))
         {
             if (!IsStarted) return BrowserActionResult.Fail("not started");
@@ -262,6 +273,7 @@ namespace ZhuaQianDesktopApp.Tools
         public Task<string> GetTitleAsync(CancellationToken token = default(CancellationToken)) { return Task.FromResult(""); }
         public Task<List<DomElement>> DomSnapshotAsync(CancellationToken token = default(CancellationToken)) { return Task.FromResult(new List<DomElement>()); }
         public Task<byte[]> ScreenshotAsync(string path = null, CancellationToken token = default(CancellationToken)) { return Task.FromResult(new byte[0]); }
+        public Task<BrowserActionResult> SaveSessionAsync(string path, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
         public Task<BrowserActionResult> NavigateAsync(string url, int timeoutMs = 30000, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
         public Task<BrowserActionResult> ClickAsync(string selector, int timeoutMs = 10000, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
         public Task<BrowserActionResult> ClickTextAsync(string text, int timeoutMs = 10000, CancellationToken token = default(CancellationToken)) { return Task.FromResult(BrowserActionResult.Fail("Interactive browser control is not enabled.")); }
@@ -287,5 +299,33 @@ namespace ZhuaQianDesktopApp.Tools
         public string Selector = "";
         public int X, Y, W, H;
         public bool HasBox { get { return W > 0 && H > 0; } }
+    }
+
+    // One shared, long-lived browser client across pipeline runs, so a "login"
+    // action and a later "savesession" / "loadsession" action operate on the same
+    // interactive session (otherwise each pipeline.Run would get a brand-new client
+    // and the cookies would be lost between commands).
+    public static class BrowserSessionHub
+    {
+        static BrowserAgentClient _client;
+        static readonly WebSearchClient _validator = new WebSearchClient();
+
+        public static BrowserAgentClient Client
+        {
+            get
+            {
+                if (_client == null) _client = new BrowserAgentClient(_validator);
+                return _client;
+            }
+        }
+
+        public static void Reset()
+        {
+            if (_client != null)
+            {
+                try { _client.StopAsync().GetAwaiter().GetResult(); } catch (Exception ex) { System.Diagnostics.Debug.WriteLine("BrowserSessionHub.Reset: " + ex.Message); }
+                _client = null;
+            }
+        }
     }
 }
