@@ -114,9 +114,9 @@ namespace ZhuaQianDesktopApp.Core
         static string[] SystemDirs()
         {
             var list = new List<string>();
-            try { list.Add(Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.Windows))); } catch { }
-            try { list.Add(Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles))); } catch { }
-            try { list.Add(Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.System))); } catch { }
+            try { list.Add(Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.Windows))); } catch (Exception) { /* best-effort: skip unavailable special folder */ }
+            try { list.Add(Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles))); } catch (Exception) { /* best-effort: skip unavailable special folder */ }
+            try { list.Add(Path.GetFullPath(Environment.GetFolderPath(Environment.SpecialFolder.System))); } catch (Exception) { /* best-effort: skip unavailable special folder */ }
             return list.ToArray();
         }
 

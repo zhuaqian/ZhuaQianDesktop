@@ -67,7 +67,7 @@ namespace ZhuaQianDesktopApp.Tools
             }
             catch (Exception ex)
             {
-                if (sessionTmp != null) { try { File.Delete(sessionTmp); } catch { } }
+                if (sessionTmp != null) { try { File.Delete(sessionTmp); } catch (Exception) { /* best-effort cleanup */ } }
                 return BrowserActionResult.Fail("start failed: " + ex.Message);
             }
         }
@@ -165,7 +165,7 @@ namespace ZhuaQianDesktopApp.Tools
             }
             catch (Exception ex)
             {
-                if (tmp != null) { try { File.Delete(tmp); } catch { } }
+                if (tmp != null) { try { File.Delete(tmp); } catch (Exception) { /* best-effort cleanup */ } }
                 return BrowserActionResult.Fail("save session failed: " + ex.Message);
             }
         }

@@ -52,7 +52,7 @@ namespace ZhuaQianDesktopApp.Core
             try { return UnprotectString(File.ReadAllBytes(path)); }
             catch (Exception ex)
             {
-                try { return File.ReadAllText(path); } catch { }
+                try { return File.ReadAllText(path); } catch (Exception) { /* legacy plaintext unreadable; treat as no session */ }
                 System.Diagnostics.Debug.WriteLine("SecretProtector.ReadProtectedFile: " + ex.Message);
                 return null;
             }

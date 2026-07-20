@@ -212,7 +212,7 @@ namespace ZhuaQianDesktopApp
             strip.BackColor = PanelBack;
             strip.ForeColor = TextFore;
             try { strip.Renderer = new ToolStripProfessionalRenderer(new ThemeColorTable()); }
-            catch { }
+            catch (Exception) { /* renderer swap is cosmetic; ignore failure */ }
             foreach (ToolStripItem item in strip.Items)
             {
                 item.BackColor = PanelBack;
@@ -271,7 +271,7 @@ namespace ZhuaQianDesktopApp
         public static void Save()
         {
             try { File.WriteAllText(FilePath, "\"" + Current.ToString() + "\""); }
-            catch { }
+            catch (Exception) { /* persistence is best-effort */ }
         }
 
         public static void Load()
@@ -285,7 +285,7 @@ namespace ZhuaQianDesktopApp
                     return;
                 }
             }
-            catch { }
+            catch (Exception) { /* persistence is best-effort */ }
             Current = ThemeName.Light;
         }
     }
