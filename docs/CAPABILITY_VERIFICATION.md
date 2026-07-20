@@ -11,8 +11,16 @@
 | 1 | 改本地文件 / 存储 | `AgentPipeline` 单管道 + `ExportFileExecutor`/`OrganizeFolderExecutor`/`PatchExecutor`/`RollbackExecutor`；持久化 `VectorIndex`(知识库)、`AuditLog`、`ConfigStore` | ✅ 真实可用 |
 | 2 | 修改 / 优化 PPT·Word·Excel | 读+写真实：`OfficeExporter`(ZipArchive 生成 OOXML) + `Extract*`(读 OOXML)；脱敏 `Redactor`；摘要提示 `office_summary` | ⚠️ 读/写真实；"优化"仅=摘要+PII 打码，**无结构化压缩/重写** |
 | 3 | Coding / Vibe Coding | `CodingAgentSession`+`DiagnoseFixExecutor`+`FixLoopRunner`+`PatchExecutor`+`GitWorkflowExecutor`；UI：「Diagnose & Fix Project」按钮 + 聊天路由 | ✅ 真实但保守（见边界） |
-| 4 | 做网站（生成网站/前端） | 仅网页**读取/分析**：`BrowserFetchExecutor`/`WebResearchFetcher`/`WebPageReportBuilder`；无 `BuildSite`/`GenerateSite`/`GenerateHtml` 类 | ❌ **代码中不存在** |
+| 4 | 做网站（生成网站/前端） | `SiteGenerator`(调 LLM 生成 index.html/style.css/app.js) 经 `WriteFileExecutor` 写盘；UI："build website" 意图 (`MainForm.Capabilities.cs`) | ✅ 已实现（代码级） |
 | 5 | 修复 Bug（自愈闭环） | `DiagnoseFixExecutor`→`FixLoopRunner`→`BuildFixLoop`(`build→parse→patch→rebuild`)；支持外部仓库 `root` | ✅ 真实但仅覆盖琐碎 C# 编译错误 |
+
+### 2026-07-20 新增能力（代码级，未运行时验证）
+
+| # | 声称能力 | 代码现状 | 结论 |
+|---|---------|---------|------|
+| 6 | 开源上传仓库（GitHub/Gitee/GitLab） | `GitHostPublisher`(`IGitHost` 抽象 + 三平台 REST 建仓 + git CLI 推本地项目，PAT 存 `ConfigStore` 不进日志)；`PublishRepo` 执行器过单管道；入口 `/publish`、`/settoken`、`/browser` | ✅ 已实现（代码级） |
+| 7 | web 登录验证（浏览器保持登录态） | 复用内置 Playwright/Chromium（MIT）；`BrowserAgentClient.SaveSessionAsync` + `BrowserSessionHub` 共享会话；`BrowserControlExecutor` 的 `login`/`savesession`/`loadsession` | ✅ 已实现（代码级） |
+| 8 | 双皮肤（浅色/深色） | `ThemeManager`(Light/Dark 调色板 + 递归 `Apply` + 工具条 `ThemeColorTable`)；`MainForm.Theme` 接管 `OnLoad` 重放按钮角色；`zq*` 改计算属性；设置→主题下拉持久化 `theme.json` | ✅ 已实现（代码级） |
 
 ---
 
@@ -46,10 +54,27 @@
   - 复杂 bug 会**诚实报 `CannotFix`**，不会乱改。
 - 结论：具备"vibe coding"雏形（自主发现编译错→安全补丁→重建→提交），但覆盖面窄，不是"任意需求直接生成整个项目"。
 
-### 4. 做网站 ❌ 不存在
-- Grep（`website|webpage|BuildSite|GenerateSite|StaticSite|scaffold|GenerateHtml|BuildHtml|建站|前端生成`）在 `src/` 中**零命中**（仅 `packages/` 的 Playwright XML 文档含 "website" 字样，无关）。
-- 唯一相关代码是**读取**网页：`BrowserFetchExecutor`/`WebResearchFetcher`/`WebPageReportBuilder` —— 用于"分析网页/抓取内容"，**不是生成站点**。
-- 文档侧：`docs/*.md` 也从未声称"建站/生成网站/前端"。无虚假声明，但用户五点中**此项确为缺口**。
+### 4. 做网站 ✅ 已实现（代码级）
+- `src/Agent/SiteGenerator.cs`：`SiteGenerator` 调 LLM 生成 `index.html` / `style.css` / `app.js`。
+- 落盘走 `WriteFileExecutor`（`permFileWrite`，过单管道）；UI 入口：`MainForm.Capabilities.cs` 的 "build website" 自然语义 + `/save` 体系。
+- 边界：生成的是**静态站点/演示文稿**（HTML/CSS/JS），不是带后端服务的站点；需 LLM 可用。
+
+### 6. 开源上传仓库 ✅ 已实现（代码级）
+- `src/Agent/GitHostPublisher.cs`：`IGitHost`(`GitHubHost`/`GiteeHost`/`GitLabHost`) + `GitHostHttp`(`HttpClient`，已补 `System.Net.Http` 引用)。流程：REST 建公开仓 → `git` CLI 以 token-in-URL remote 推送；PAT 从 `ConfigStore` 的 `<host>_token` 读取，**不进命令参数/审计日志**。
+- 执行器 `GitHostPublisherExecutor`(`CommandType=PublishRepo`) 注册进 `AgentPipelineFactory`，过单管道审批。
+- 路由：`MainForm.Publish.cs` 的 `/publish` / `/settoken` / `/browser`（及自然语言）。
+- 发布前若无 `.gitignore` 自动写入（排除 bin/obj/packages/node_modules 等）。
+
+### 7. web 登录验证（浏览器保持登录态）✅ 已实现（代码级）
+- 复用内置 **Playwright/Chromium**（开源 MIT，模块 G/H），无需新建浏览器。
+- `BrowserAgentClient.SaveSessionAsync` 导出 cookie/localStorage；`BrowserSessionHub` 共享单例，保证 `login`→`savesession`→`loadsession` 同一会话。
+- `BrowserControlExecutor` 新增 `login`/`savesession`/`loadsession` 动作，经 `BrowserControl` 命令过单管道。
+
+### 8. 双皮肤（浅色/深色）✅ 已实现（代码级）
+- `src/ui/ThemeManager.cs`：`ThemeName{Light,Dark}` + 完整调色板 + 递归 `Apply`(含工具条 `ThemeColorTable`) + `theme.json` 持久化。
+- `src/ui/MainForm.Theme.cs` 接管 `OnLoad`：`ThemeManager.Apply(this)` + 订阅 `ThemeChanged` 重放按钮角色。
+- `ZhuaQianDesktop.cs` 的 11 个 `zq*` 颜色字段改为读 `ThemeManager` 的计算属性，聊天区/语义色全部走主题令牌。
+- 切换入口：设置对话框「主题」下拉，即时生效并持久化。
 
 ### 5. 修复 Bug ✅（同 #3 闭环）
 - `DiagnoseFixExecutor` + `FixLoopRunner` + `BuildFixLoop` + `GitWorkflowExecutor` + `RuleBasedFixStrategy` + `Agent/Coding/ErrorParser.cs`。
@@ -66,7 +91,7 @@
 ## 缺失项与建议
 | 缺口 | 是否建议补 | 工作量估计 |
 |------|-----------|-----------|
-| 4. 做网站（生成静态站点/前端） | 若产品需要，建议补：可复用 `OfficeExporter` 的 OOXML 思路 + 新增 `SiteGenerator`(HTML/JS) + 接 LLM 生成 | 中（需新模块 + UI 入口 + 测试） |
+| 4. 做网站（生成静态站点/前端） | **已补**：`SiteGenerator`(HTML/JS) + `WriteFileExecutor` 落盘 + "build website" 意图（代码级，待本地编译验证） | 中（已完成代码级） |
 | 2. Office "优化"（结构化压缩/版式重写） | 建议补：在 `OfficeExporter` 基础上加 `OptimizePptx/Xlsx`(删冗余、重排、摘要回写) | 中 |
 | 3. 模型驱动写码策略 `ModelFixStrategy` | 已标记 future，建议落地以拓宽自愈覆盖面 | 中 |
 

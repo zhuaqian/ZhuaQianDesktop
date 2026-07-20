@@ -20,6 +20,10 @@ It is built around a simple idea: an AI assistant should be useful on your own W
 - Act as an autonomous coding agent: scan a project, locate its build/test script, run tests, read failures, generate and apply patches through the guarded pipeline, and commit fixes (DiagnoseFix / BuildFixLoop / CodePatcher / GitWorkflow)
 - Share/import task packages, share over LAN, use relay sharing, and start/join live sessions when network permission is enabled
 - Store API keys with Windows DPAPI for the current user
+- Publish a local project as a public open-source repo on GitHub, Gitee, or GitLab (`/publish host=github path=...`) — the PAT is kept in local config only and never written to the audit log
+- Keep a logged-in web session in the built-in open-source Chromium browser and reuse it later (`/browser login` → `savesession` → `loadsession`)
+- Switch between a clean Light skin and a Dark skin from Settings → Theme (persisted to `%AppData%/ZhuaQianDesktop/theme.json`)
+- Generate a static HTML presentation / website from a prompt via the LLM (`/build website` or natural language)
 - Gate risky actions behind permissions, Power mode, approval cards, and audit/output records
 
 ## Implemented Vs Planned
@@ -27,6 +31,7 @@ It is built around a simple idea: an AI assistant should be useful on your own W
 Implemented in the current preview:
 
 - Desktop workbench UI, task history, provider routing, file parsing, real exports, outputs history, local knowledge index, command palette, permission settings, approval cards, audit log, plugin runner, rollback, basic computer control, plan review with first-step execution, process snapshot monitoring scaffold, and a read-only local activity monitor — and an autonomous coding-agent loop (diagnose build failure → patch → test → commit through the guarded pipeline).
+- Open-source publishing to GitHub / Gitee / GitLab, browser login-state persistence (built-in Chromium), Light/Dark themes, and LLM-driven static website / HTML presentation generation.
 
 Partly implemented:
 
@@ -55,6 +60,13 @@ Verified on 2026-07-18 in this workspace:
 - `src/scripts/run-tests.ps1`: passed, `219` passed / `0` failed
 - Architecture and package checks: passed
 
+Code added on 2026-07-20 (code-level, pending a fresh local build/test in this sandbox-free environment):
+open-source publishing (GitHub/Gitee/GitLab), browser login-state persistence,
+dual Light/Dark themes, and LLM website generation. The build scripts were updated
+to reference `System.Net.Http`/`System.Xml` (required by the publish feature) and to
+resolve `csc.exe` on the CI `windows-latest` runner; run `src/build.ps1` then
+`src/scripts/run-tests.ps1` to confirm the tree still compiles and tests green.
+
 The transitional `work/zq-desktop/` mirror has been retired and is no longer a build/test source.
 
 The local workspace Git repository is usable (linear history, see `git log`). For a pristine public history, publish from a clean clone.
@@ -80,8 +92,12 @@ Requirements:
 Build the modular tree:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\build.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\src\build.ps1
 ```
+
+The default output is `dist/ZhuaQianDesktop.exe` at the repository root (ignored by
+`.gitignore`). The script auto-resolves `csc.exe` and references `System.Net.Http` /
+`System.Xml` (needed by the open-source publishing feature).
 
 The stable local executable is always `dist/ZhuaQianDesktop.exe`. If older tagged builds accumulate in `dist/`, archive them without deleting:
 

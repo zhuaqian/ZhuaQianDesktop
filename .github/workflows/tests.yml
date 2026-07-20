@@ -32,7 +32,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          & pwsh -ExecutionPolicy Bypass -File (Join-Path $env:GITHUB_WORKSPACE 'build.ps1')
+          & pwsh -ExecutionPolicy Bypass -File (Join-Path $env:GITHUB_WORKSPACE 'src\build.ps1')
           if ($LASTEXITCODE -ne 0) { throw "Build failed" }
       - name: Package release artifact
         shell: pwsh

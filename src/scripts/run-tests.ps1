@@ -62,7 +62,9 @@ try {
         "System.Web.Extensions.dll",
         "System.Security.dll",
         "System.IO.Compression.dll",
-        "System.IO.Compression.FileSystem.dll"
+        "System.IO.Compression.FileSystem.dll",
+        "System.Net.Http.dll",
+        "System.Xml.dll"
     ) -join ";"
 
     # Optional Playwright for .NET + transitive DLLs. The default raw-csc test

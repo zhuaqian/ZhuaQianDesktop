@@ -1,8 +1,20 @@
 param(
-    [string]$Output = "ZhuaQianDesktop.exe"
+    [string]$Output = ""
 )
 
-$csc = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe"
+# Default output: <repo-root>/dist/ZhuaQianDesktop.exe (kept out of git via .gitignore /dist/).
+$repoRoot = Split-Path -Parent $PSScriptRoot
+if ([string]::IsNullOrEmpty($Output)) { $Output = Join-Path $repoRoot "dist\ZhuaQianDesktop.exe" }
+
+# Resolve csc.exe across common .NET Framework locations so the same script works
+# on a dev machine and on the GitHub Actions windows-latest runner (instead of a
+# hard-coded path that may not exist on either).
+$cscCandidates = @(
+    "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319\csc.exe",
+    "$env:WINDIR\Microsoft.NET\Framework\v4.0.30319\csc.exe"
+)
+$csc = $cscCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $csc) { Write-Host "ERROR: csc.exe not found under $env:WINDIR\Microsoft.NET\Framework*\v4.0.30319\" -ForegroundColor Red; exit 1 }
 # Dynamic enumeration: always in sync with the filesystem and with csproj.
 # Excludes test files and the three legacy/dead duplicate files that would
 # otherwise cause CS0101/CS0262/CS0017 if compiled into the EXE:
@@ -24,6 +36,8 @@ $refs = @(
     "System.Security.dll"
     "System.IO.Compression.dll"
     "System.IO.Compression.FileSystem.dll"
+    "System.Net.Http.dll"
+    "System.Xml.dll"
 )
 
 # --- Optional Playwright for .NET --------------------------------------------
@@ -72,6 +86,10 @@ $argsList = @(
     "/reference:$($refs -join ';')"
     $src
 )
+
+# Ensure the output directory exists (csc will not create it).
+$outDir = Split-Path -Parent $Output
+if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
 
 Write-Host "Compiling $Output ..."
 Push-Location $PSScriptRoot
