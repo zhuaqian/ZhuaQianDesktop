@@ -83,6 +83,7 @@ $argsList = @(
     "/target:winexe"
     "/out:$Output"
     "/nologo"
+    "/langversion:7.3"
     "/reference:$($refs -join ';')"
     $src
 )

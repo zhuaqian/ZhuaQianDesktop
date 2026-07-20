@@ -127,7 +127,7 @@ try {
     $Out = Join-Path $testDir ("TestRunner-" + [Guid]::NewGuid().ToString("N") + ".exe")
 
     Write-Step "Compiling unit tests ..." Cyan
-    $compileOutput = & $Csc /nologo /target:exe /out:$Out /main:TestRunner /reference:$Refs $compileDefines $Src 2>&1
+    $compileOutput = & $Csc /nologo /langversion:7.3 /target:exe /out:$Out /main:TestRunner /reference:$Refs $compileDefines $Src 2>&1
     foreach ($line in $compileOutput) { Write-Step ([Convert]::ToString($line)) Gray }
     if ($LASTEXITCODE -ne 0) { throw "Test compilation failed" }
 

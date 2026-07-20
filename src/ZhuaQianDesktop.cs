@@ -2966,8 +2966,8 @@ namespace ZhuaQianDesktopApp
                 new List<string> { permission },
                 new List<string> { affected },
                 risk, output, detail, Tr,
-                isHighRisk,
-                out editNote);
+                out editNote,
+                isHighRisk);
             bool approved = decision == Tools.ApprovalDecision.Approved || decision == Tools.ApprovalDecision.Edited;
             RecordAction(actionType, approved ? "approved" : "cancelled", title + "\n" + (editNote ?? ""), outputPath);
             return approved;

@@ -180,8 +180,8 @@ namespace ZhuaQianDesktopApp.Tools
         public static ApprovalDecision Show(IWin32Window owner, string title, string mode,
             List<string> requiredPermissions, List<string> affectedPaths, string risk, string output, string auditNote,
             Func<string, string, string, string> translator,
-            bool highRisk = false,
-            out string editNote)
+            out string editNote,
+            bool highRisk = false)
         {
             using (var card = new ApprovalCard(title, mode, requiredPermissions, affectedPaths, risk, output, auditNote, translator, highRisk))
             {
