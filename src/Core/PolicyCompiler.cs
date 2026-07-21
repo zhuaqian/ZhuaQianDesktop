@@ -27,10 +27,12 @@ namespace ZhuaQianDesktopApp.Core
             if (string.IsNullOrWhiteSpace(text)) return rules;
 
             string lower = text.ToLowerInvariant();
+            bool anyKeywordRecognized = false;
 
             // 1) "don't delete files larger than X MB" / "不要删除超过 X MB 的文件"
             if (lower.Contains("delete") || lower.Contains("删除") || lower.Contains("del"))
             {
+                anyKeywordRecognized = true;
                 double mb = ExtractMegabytes(lower);
                 if (mb > 0)
                 {
@@ -49,6 +51,7 @@ namespace ZhuaQianDesktopApp.Core
             if (lower.Contains("network") || lower.Contains("联网") || lower.Contains("upload")
                 || lower.Contains("网络") || lower.Contains("internet"))
             {
+                anyKeywordRecognized = true;
                 int hour = ExtractHour(lower);
                 if (hour >= 0)
                 {
@@ -67,6 +70,7 @@ namespace ZhuaQianDesktopApp.Core
             if ((lower.Contains("system") && (lower.Contains("writ") || lower.Contains("写") || lower.Contains("目录") || lower.Contains("dir")))
                 || lower.Contains("写入系统") || lower.Contains("写系统目录"))
             {
+                anyKeywordRecognized = true;
                 string[] sysDirs = SystemDirs();
                 rules.Add(new DelegatePermissionRule((action, target) =>
                 {
@@ -94,6 +98,7 @@ namespace ZhuaQianDesktopApp.Core
                 || lower.Contains("禁止") || lower.Contains("不允许") || lower.Contains("不准") || lower.Contains("不要运行");
             if (hasForbid)
             {
+                anyKeywordRecognized = true;
                 var addedPerms = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var kv in verbMap)
                 {
@@ -106,6 +111,17 @@ namespace ZhuaQianDesktopApp.Core
                         action == perm ? (PermissionDecision?)PermissionDecision.Deny : null));
                     notes.Add("Deny " + kv.Key + " actions (" + perm + ").");
                 }
+            }
+
+            // Explicit no-match feedback: silent failure is the most dangerous
+            // failure mode for a security-policy compiler. If the user wrote
+            // something but no rule was produced, they MUST be told.
+            if (rules.Count == 0)
+            {
+                if (anyKeywordRecognized)
+                    notes.Add("Some policy keywords were recognized but no complete rule could be compiled (e.g., missing a file size or time) — nothing was applied.");
+                else
+                    notes.Add("No recognized policy clause found in this text — nothing was applied.");
             }
 
             return rules;

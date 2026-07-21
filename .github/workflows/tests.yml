@@ -12,6 +12,17 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Verify Roslyn compiler (not legacy C# 5)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          . (Join-Path $env:GITHUB_WORKSPACE 'src\scripts\resolve-compiler.ps1')
+          $c = Resolve-CSharpCompiler
+          if (-not $c) { throw "No C# compiler found on the CI runner." }
+          if (-not $c.Roslyn) {
+            throw "FATAL: only the legacy .NET Framework compiler (C# 5) was found. This project requires Roslyn (C# 7.3). The CI runner image may have changed — ensure Visual Studio Build Tools are installed."
+          }
+          Write-Host "Roslyn compiler verified: $($c.Path)"
       - name: Build and run unit tests
         shell: pwsh
         run: |
@@ -27,7 +38,7 @@ jobs:
     needs: test
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build executable (dist/ZhuaQianDesktop.exe)
         shell: pwsh
         run: |

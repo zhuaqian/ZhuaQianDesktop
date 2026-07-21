@@ -57,10 +57,37 @@ static class TestPolicyCompiler
             }
         }
 
-        // 4) empty input yields no rules.
+        // 4) empty input yields no rules and no warning note.
         {
-            var rules = PolicyCompiler.Compile("", null, new List<string>());
+            var notes = new List<string>();
+            var rules = PolicyCompiler.Compile("", null, notes);
             Assert(rules.Count == 0, "empty input -> no rules", ref failures);
+            Assert(notes.Count == 0, "empty input -> no warning note", ref failures);
+        }
+
+        // 5) non-empty text with no recognizable keywords -> 0 rules + explicit
+        //    "No recognized policy clause" warning (silent failure is dangerous
+        //    for a security-policy compiler).
+        {
+            var notes = new List<string>();
+            var rules = PolicyCompiler.Compile("please make the screen brighter", null, notes);
+            Assert(rules.Count == 0, "unrecognized text -> no rules", ref failures);
+            Assert(notes.Count > 0, "unrecognized text produces a note", ref failures);
+            if (notes.Count > 0)
+                Assert(notes[notes.Count - 1].IndexOf("No recognized policy clause") >= 0,
+                       "unrecognized text note says 'No recognized policy clause'", ref failures);
+        }
+
+        // 6) keyword matched but detail extraction failed (e.g., "delete" without
+        //    a size) -> 0 rules + "Some policy keywords were recognized" note.
+        {
+            var notes = new List<string>();
+            var rules = PolicyCompiler.Compile("don't delete files", null, notes);
+            Assert(rules.Count == 0, "incomplete delete clause -> no rules", ref failures);
+            Assert(notes.Count > 0, "incomplete clause produces a note", ref failures);
+            if (notes.Count > 0)
+                Assert(notes[notes.Count - 1].IndexOf("Some policy keywords") >= 0,
+                       "incomplete clause note says 'Some policy keywords'", ref failures);
         }
 
         return failures;
