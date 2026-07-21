@@ -74,6 +74,8 @@ class TestRunner
         failures += TestPolicyCompiler.RunAll();
         failures += global::TestPermissionGate.RunAll();
         failures += TestPluginTrust.RunAll();
+        failures += TestPluginTrustEnforcement.RunAll();
+        failures += TestProviders.RunAll();
 
         Console.WriteLine("================================");
         Console.WriteLine("Passed: " + passed + "  Failed: " + failures);
@@ -558,7 +560,9 @@ class TestRunner
             string auditPath = Path.Combine(dir, "audit.log");
             var audit = new AuditLog(auditPath);
             var pipelineFactory = new AgentPipelineFactory(auditPath, dir, outputs, new OfficeExporter(), new WebSearchClient());
-            var pipeline = pipelineFactory.Create(gate, dir, false);
+            // The bare echo.py ships no manifest; opt into untrusted runs so this
+            // stdin/BOM plumbing test still passes under trust enforcement.
+            var pipeline = pipelineFactory.Create(gate, dir, false, null, null, true);
             Assert(pipeline.HasExecutor("WebSearch"), "web search executor registered");
 
             string file = Path.Combine(dir, "reply.txt");

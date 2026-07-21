@@ -20,6 +20,12 @@ namespace ZhuaQianDesktopApp.Agent
         public PluginTrustStore TrustStore { get; set; }
         public Func<PluginManifest, bool> CapabilityConfirm { get; set; }
 
+        // Roadmap 1.4 / ARCHITECTURE_CHARTER: when trust enforcement is active
+        // (TrustStore != null), a plugin that ships no manifest is blocked unless
+        // this opt-in is set. Default false = enforced. Production enables it via
+        // a marker file (configDir/allow-untrusted-plugins.txt) or an explicit call.
+        public bool AllowUntrustedPlugins { get; set; }
+
         public PluginRunExecutor(string trustedPluginDir, bool allowAdvancedPlugins, int timeoutMs, int maxOutputChars)
             : this(trustedPluginDir, allowAdvancedPlugins, timeoutMs, maxOutputChars, null)
         {
@@ -54,16 +60,37 @@ namespace ZhuaQianDesktopApp.Agent
             if (!string.IsNullOrEmpty(validation))
                 return CommandResult.Failed(validation);
 
-            // roadmap 1.4: when a manifest sits next to the plugin, enforce its
-            // signature (via TrustStore) and ask for per-run capability consent.
+            // Roadmap 1.4 / ARCHITECTURE_CHARTER: when a trust store is active,
+            // plugin runs are gated on manifest trust:
+            //   - signed manifest from a known publisher -> run
+            //   - manifest present but untrusted            -> require capability consent
+            //   - no manifest at all                        -> blocked unless opt-in
             string manifestPath = FindManifest(path);
             if (manifestPath != null)
             {
                 var pres = new PluginManifestParser(TrustStore).ParseFromFile(manifestPath);
                 if (!pres.Success)
                     return CommandResult.Failed("Plugin manifest rejected: " + string.Join("; ", pres.Errors));
-                if (CapabilityConfirm != null && !CapabilityConfirm(pres.Manifest))
-                    return CommandResult.Failed("Plugin capabilities were not approved by the user.");
+                if (pres.Manifest.Trusted)
+                {
+                    // signature verified against a known publisher: allowed.
+                }
+                else if (CapabilityConfirm != null && CapabilityConfirm(pres.Manifest))
+                {
+                    // user explicitly approved this untrusted plugin for this run.
+                }
+                else
+                {
+                    return CommandResult.Failed(
+                        "Untrusted plugin blocked by trust enforcement: the manifest is unsigned or from an unknown publisher. " +
+                        "Approve it via the capability prompt, or add the publisher to the trusted store.");
+                }
+            }
+            else if (TrustStore != null && !AllowUntrustedPlugins)
+            {
+                return CommandResult.Failed(
+                    "Plugin trust enforcement is enabled and this plugin ships no manifest. " +
+                    "Run only verified plugins, or enable 'allow untrusted plugins'.");
             }
 
             var result = runner.Run(path, arguments, timeoutMs, stdin);

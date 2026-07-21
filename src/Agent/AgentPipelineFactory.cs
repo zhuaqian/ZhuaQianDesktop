@@ -24,24 +24,29 @@ namespace ZhuaQianDesktopApp.Agent
             this.webSearchClient = webSearchClient ?? new WebSearchClient();
         }
 
-        public AgentPipeline Create(PermissionGate permissionGate, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null, Func<PluginManifest, bool> capabilityConfirm = null)
+        public AgentPipeline Create(PermissionGate permissionGate, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null, Func<PluginManifest, bool> capabilityConfirm = null, bool allowUntrustedPlugins = false)
         {
             var pipeline = new AgentPipeline(permissionGate, new AuditLog(auditLogPath), outputsHub);
-            RegisterStandardExecutors(pipeline, pluginDir, allowAdvancedPlugins, projectRootOverride, capabilityConfirm);
+            RegisterStandardExecutors(pipeline, pluginDir, allowAdvancedPlugins, projectRootOverride, capabilityConfirm, allowUntrustedPlugins);
             return pipeline;
         }
 
-        public void RegisterStandardExecutors(AgentPipeline pipeline, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null, Func<PluginManifest, bool> capabilityConfirm = null)
+        public void RegisterStandardExecutors(AgentPipeline pipeline, string pluginDir, bool allowAdvancedPlugins, string projectRootOverride = null, Func<PluginManifest, bool> capabilityConfirm = null, bool allowUntrustedPlugins = false)
         {
             pipeline.Register(new ExportFileExecutor(officeExporter));
             pipeline.Register(new WriteFileExecutor());
             pipeline.Register(new OfficeTemplateExecutor(officeExporter));
             pipeline.Register(new OrganizeFolderExecutor(configDir));
             var pluginTrust = new PluginTrustStore(System.IO.Path.Combine(configDir, "trusted-publishers.json"));
+            // Opt-in to run untrusted (no-manifest) plugins: explicit flag OR a marker
+            // file in the config dir. Absent both -> trust enforcement stays on.
+            bool allowUntrusted = allowUntrustedPlugins
+                || System.IO.File.Exists(System.IO.Path.Combine(configDir, "allow-untrusted-plugins.txt"));
             pipeline.Register(new PluginRunExecutor(pluginDir, allowAdvancedPlugins, 30000, 20000, System.IO.Path.Combine(configDir, "plugin-output"))
             {
                 TrustStore = pluginTrust,
-                CapabilityConfirm = capabilityConfirm
+                CapabilityConfirm = capabilityConfirm,
+                AllowUntrustedPlugins = allowUntrusted
             });
             pipeline.Register(new ProcessManageExecutor());
             pipeline.Register(new ComputerControlExecutor());
